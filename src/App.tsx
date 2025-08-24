@@ -1,13 +1,44 @@
-import { AppShell, Burger, Group, NavLink, ScrollArea, Title } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, ScrollArea, Title, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Link, Routes, Route, useLocation } from 'react-router-dom';
+import { Link, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
+import Auth from './pages/Auth';
+import RequireAuth from './shared/auth/RequireAuth';
+import { supabase } from './shared/api/supabase';
+import { signOut } from './shared/api/auth';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [authed, setAuthed] = useState(false);
+
+  // отслеживаем авторизацию
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setAuthed(!!data.user);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthed(!!session?.user);
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth', { replace: true });
+  };
 
   return (
     <AppShell
@@ -25,31 +56,54 @@ export default function App() {
       <AppShell.Navbar p="sm">
         <ScrollArea type="hover" style={{ height: '100%' }}>
           <NavLink
-            label="Overview"
+            label="Обзор"
             component={Link}
             to="/"
             active={location.pathname === '/'}
           />
           <NavLink
-            label="Analytics"
+            label="Аналитика"
             component={Link}
             to="/analytics"
             active={location.pathname.startsWith('/analytics')}
           />
           <NavLink
-            label="Transactions"
+            label="Транзакции"
             component={Link}
             to="/transactions"
             active={location.pathname.startsWith('/transactions')}
           />
+
+          {/* нижний блок: вход или выход */}
+          {!authed ? (
+            <NavLink
+              label="Войти"
+              component={Link}
+              to="/auth"
+              active={location.pathname.startsWith('/auth')}
+            />
+          ) : (
+            <Group justify="flex-start" p="sm">
+              <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
+                Выйти
+              </Button>
+            </Group>
+          )}
         </ScrollArea>
       </AppShell.Navbar>
 
       <AppShell.Main>
         <Routes>
-          <Route path="/" element={<Overview />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/transactions" element={<Transactions />} />
+
+          <Route path="/auth" element={<Auth />} />
+
+
+          <Route path="/" element={<RequireAuth><Overview /></RequireAuth>} />
+          <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
+          <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>
     </AppShell>
