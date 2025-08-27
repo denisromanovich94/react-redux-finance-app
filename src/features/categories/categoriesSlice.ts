@@ -15,7 +15,6 @@ const initialState: CategoriesState = {
   error: null,
 };
 
-// Загрузка всех категорий текущего пользователя
 export const loadCategories = createAsyncThunk<Category[]>(
   'categories/load',
   async () => {
@@ -23,7 +22,7 @@ export const loadCategories = createAsyncThunk<Category[]>(
   }
 );
 
-// Добавление категории
+
 export const addCategoryAsync = createAsyncThunk<
   Category,
   Omit<Category, 'id' | 'user_id' | 'created_at'>
@@ -35,7 +34,7 @@ const slice = createSlice({
   name: 'categories',
   initialState,
   reducers: {
-    // сюда можно добавить sync-редьюсеры при необходимости
+
     resetCategories(state) {
       state.items = [];
       state.loading = false;
@@ -43,7 +42,7 @@ const slice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // load
+
     builder.addCase(loadCategories.pending, (state) => {
       state.loading = true;
       state.error = null;

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
-import Auth from './pages/Auth';
+import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';

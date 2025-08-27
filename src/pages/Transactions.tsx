@@ -24,7 +24,6 @@ const colorOptions = [
     { value: 'teal', label: 'Бирюзовый' },
     { value: 'blue', label: 'Синий' },
     { value: 'red', label: 'Красный' },
-    { value: 'grape', label: 'Фиолетовый' },
     { value: 'yellow', label: 'Жёлтый' },
     { value: 'orange', label: 'Оранжевый' },
     { value: 'purple', label: 'Пурпурный' },
@@ -74,22 +73,70 @@ const categoryNames = useAppSelector(selectTransactionCategoryNames);
     dispatch(deleteTransactionAsync(id));
   };
 
+const canSaveCategory = newCatName.trim().length > 0;
 
+const resetNewCategoryForm = () => {
+  setNewCatName('');
+  setNewCatType('expense');
+  setNewCatColor('teal');
+};
+
+const handleSaveCategory = () => {
+  if (!canSaveCategory) return;
+
+  dispatch(
+    addCategoryAsync({
+      name: newCatName.trim(),
+      type: newCatType,
+      color: newCatColor,
+      icon: null,
+    })
+  );
+
+  resetNewCategoryForm();
+  setCatOpened(false);
+};
+const handleCategoryChange = (val: string | null) => {
+  form.setFieldValue('category', val ?? '');
+
+  const cat = val ? catByName.get(val) : undefined;
+  if (!cat) {
+    return;
+  }
+
+  const amt = Number(form.values.amount || 0);
+
+  if (cat.type === 'income' && amt < 0) {
+    form.setFieldValue('amount', Math.abs(amt));
+  } else if (cat.type === 'expense' && amt > 0) {
+    form.setFieldValue('amount', -Math.abs(amt));
+  }
+};
+const handleSubmitTransaction = form.onSubmit((values) => {
+  const payload = toTxPayload(values);
+
+  if (editingId) {
+    dispatch(updateTransactionAsync({ id: editingId, changes: payload }));
+  } else {
+    dispatch(addTransactionAsync(payload));
+  }
+
+  form.reset();
+  setEditingId(null);
+  close();
+});
+const handleAddTransaction = () => {
+  setEditingId(null);
+  form.reset();
+  open();
+};
   return (
     <PageContainer maxWidth={1200}>
       <Card radius="lg" p="lg" withBorder>
         <Title order={2} mb="md">Транзакции</Title>
-
-        <Button
-          onClick={() => {
-            setEditingId(null);
-            form.reset();
-            open();
-          }}
-          mb="md"
-        >
-          Добавить транзакцию
-        </Button>
+<Button onClick={handleAddTransaction} mb="md">
+  Добавить транзакцию
+</Button>
 
         <Modal
           opened={opened}
@@ -97,19 +144,7 @@ const categoryNames = useAppSelector(selectTransactionCategoryNames);
           title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
         >
           <form
-            onSubmit={form.onSubmit((values) => {
-              const payload = toTxPayload(values);
-
-              if (editingId) {
-                dispatch(updateTransactionAsync({ id: editingId, changes: payload }));
-              } else {
-                dispatch(addTransactionAsync(payload));
-              }
-
-              form.reset();
-              setEditingId(null);
-              close();
-            })}
+            onSubmit={handleSubmitTransaction}
           >
             <DateInput
               label="Дата"
@@ -123,19 +158,11 @@ const categoryNames = useAppSelector(selectTransactionCategoryNames);
             />
 
             <Select
-              label="Категория"
-              placeholder="Выберите категорию"
-              data={catOptions}
-              value={form.values.category}
-              onChange={(val) => {
-                form.setFieldValue('category', val || '');
-                const cat = val ? catByName.get(val) : undefined;
-                if (cat) {
-                  const amt = Number(form.values.amount || 0);
-                  if (cat.type === 'income' && amt < 0) form.setFieldValue('amount', Math.abs(amt));
-                  if (cat.type === 'expense' && amt > 0) form.setFieldValue('amount', -Math.abs(amt));
-                }
-              }}
+  label="Категория"
+  placeholder="Выберите категорию"
+  data={catOptions}
+  value={form.values.category}
+  onChange={handleCategoryChange}
               renderOption={({ option }) => {
                 const { label } = option;
                 const color = (option as { label: string; value: string; color?: string }).color;
@@ -213,25 +240,9 @@ const categoryNames = useAppSelector(selectTransactionCategoryNames);
             />
 
             <Group justify="flex-end" mt="sm">
-              <Button
-                onClick={() => {
-                  if (!newCatName.trim()) return;
-                  dispatch(
-                    addCategoryAsync({
-                      name: newCatName.trim(),
-                      type: newCatType,
-                      color: newCatColor,
-                      icon: null,
-                    })
-                  );
-                  setNewCatName('');
-                  setNewCatType('expense');
-                  setNewCatColor('teal');
-                  setCatOpened(false);
-                }}
-              >
-                Сохранить
-              </Button>
+             <Button onClick={handleSaveCategory} disabled={!canSaveCategory}>
+  Сохранить
+</Button>
             </Group>
           </Stack>
         </Modal>

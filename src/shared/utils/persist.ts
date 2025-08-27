@@ -18,6 +18,6 @@ export function saveState(state: PersistedState) {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
-    // Заглушка что бы реакт не ругался) хз что написать в кетч тут
+    throw new Error('Не удалось сохранить состояние в localStorage: ');
   }
 }
