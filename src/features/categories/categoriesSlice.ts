@@ -1,10 +1,9 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
-import { fetchCategories, createCategory, type DbCategory } from './categoriesApi';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { getCategories, createCategory, type Category as ApiCategory } from './categoriesApi';
 
-export type Category = DbCategory;
+export type Category = ApiCategory;
 
-type CategoriesState = {
+export type CategoriesState = {
   items: Category[];
   loading: boolean;
   error: string | null;
@@ -16,23 +15,33 @@ const initialState: CategoriesState = {
   error: null,
 };
 
-export const loadCategories = createAsyncThunk('categories/load', async () => {
-  const data = await fetchCategories();
-  return data as Category[];
-});
-
-export const addCategoryAsync = createAsyncThunk(
-  'categories/add',
-  async (cat: Omit<Category, 'id' | 'user_id' | 'created_at'>) => {
-    const data = await createCategory(cat);
-    return data as Category;
+// Загрузка всех категорий текущего пользователя
+export const loadCategories = createAsyncThunk<Category[]>(
+  'categories/load',
+  async () => {
+    return await getCategories();
   }
 );
 
-const categoriesSlice = createSlice({
+// Добавление категории
+export const addCategoryAsync = createAsyncThunk<
+  Category,
+  Omit<Category, 'id' | 'user_id' | 'created_at'>
+>('categories/add', async (cat) => {
+  return await createCategory(cat);
+});
+
+const slice = createSlice({
   name: 'categories',
   initialState,
-  reducers: {},
+  reducers: {
+    // сюда можно добавить sync-редьюсеры при необходимости
+    resetCategories(state) {
+      state.items = [];
+      state.loading = false;
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     // load
     builder.addCase(loadCategories.pending, (state) => {
@@ -55,4 +64,5 @@ const categoriesSlice = createSlice({
   },
 });
 
-export default categoriesSlice.reducer;
+export const { resetCategories } = slice.actions;
+export const categoriesReducer = slice.reducer;

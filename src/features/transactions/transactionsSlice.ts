@@ -1,18 +1,11 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  fetchTransactions,
-  createTransaction,
-  patchTransaction,
-  removeTransaction,
+  getTransactions,
+  createTransaction as apiCreateTransaction,
+  updateTransaction as apiUpdateTransaction,
+  deleteTransaction as apiDeleteTransaction,
+  type Transaction,
 } from './transactionsApi';
-
-export type Transaction = {
-  id: string;
-  date: string;   
-  category: string;  
-  amount: number;   
-};
 
 type TransactionsState = {
   items: Transaction[];
@@ -26,45 +19,45 @@ const initialState: TransactionsState = {
   error: null,
 };
 
-export const loadTransactions = createAsyncThunk(
+// Загрузка всех транзакций текущего пользователя
+export const loadTransactions = createAsyncThunk<Transaction[]>(
   'transactions/load',
   async () => {
-    const data = await fetchTransactions();
-    return data as Transaction[];
+    return await getTransactions();
   }
 );
 
-export const addTransactionAsync = createAsyncThunk(
-  'transactions/add',
-  async (tx: Omit<Transaction, 'id'>) => {
-    const data = await createTransaction(tx);
-    return data as Transaction;
-  }
-);
+// Создание транзакции
+export const addTransactionAsync = createAsyncThunk<
+  Transaction,
+  Omit<Transaction, 'id' | 'user_id' | 'created_at'>
+>('transactions/add', async (payload) => {
+  return await apiCreateTransaction(payload);
+});
 
-export const updateTransactionAsync = createAsyncThunk(
-  'transactions/update',
-  async ({ id, changes }: { id: string; changes: Partial<Omit<Transaction, 'id'>> }) => {
-    const data = await patchTransaction(id, changes);
-    return data as Transaction;
-  }
-);
+// Обновление транзакции
+export const updateTransactionAsync = createAsyncThunk<
+  Transaction,
+  { id: string; changes: Partial<Omit<Transaction, 'id' | 'user_id'>> }
+>('transactions/update', async ({ id, changes }) => {
+  return await apiUpdateTransaction(id, changes);
+});
 
-export const deleteTransactionAsync = createAsyncThunk(
+// Удаление транзакции
+export const deleteTransactionAsync = createAsyncThunk<string, string>(
   'transactions/delete',
-  async (id: string) => {
-    await removeTransaction(id);
+  async (id) => {
+    await apiDeleteTransaction(id);
     return id;
   }
 );
 
-const transactionsSlice = createSlice({
+const slice = createSlice({
   name: 'transactions',
   initialState,
-  reducers: {
-
-  },
+  reducers: {},
   extraReducers: (builder) => {
+    // LOAD
     builder.addCase(loadTransactions.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -75,25 +68,25 @@ const transactionsSlice = createSlice({
     });
     builder.addCase(loadTransactions.rejected, (state, action) => {
       state.loading = false;
-      state.error = action.error.message ?? 'Failed to load';
+      state.error = action.error.message ?? 'Не удалось загрузить транзакции';
     });
 
-    // add
+    // ADD
     builder.addCase(addTransactionAsync.fulfilled, (state, action: PayloadAction<Transaction>) => {
       state.items.unshift(action.payload);
     });
 
-    // update
+    // UPDATE
     builder.addCase(updateTransactionAsync.fulfilled, (state, action: PayloadAction<Transaction>) => {
       const idx = state.items.findIndex((t) => t.id === action.payload.id);
       if (idx !== -1) state.items[idx] = action.payload;
     });
 
-    // delete
+    // DELETE
     builder.addCase(deleteTransactionAsync.fulfilled, (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((t) => t.id !== action.payload);
     });
   },
 });
 
-export default transactionsSlice.reducer;
+export default slice.reducer;

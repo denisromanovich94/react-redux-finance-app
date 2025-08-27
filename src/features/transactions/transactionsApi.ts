@@ -1,35 +1,36 @@
 import { supabase } from '../../shared/api/supabase';
 import { getUserId } from '../../shared/api/auth';
 
-export type DbTransaction = {
+export type Transaction = {
   id: string;
-  date: string;
+  user_id: string;
+  date: string;  
   category: string;
-  amount: number;
-  user_id?: string; 
+  amount: number;   
+  created_at?: string;
 };
 
 const TABLE = 'transactions';
 
-export async function fetchTransactions(): Promise<DbTransaction[]> {
-  const userId = await getUserId();
-  if (!userId) {
 
-    return [];
-  }
+export async function getTransactions(): Promise<Transaction[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('date', { ascending: false });
 
   if (error) throw error;
+
   return (data ?? []).map((t) => ({ ...t, amount: Number(t.amount) }));
 }
 
+
 export async function createTransaction(
-  tx: Omit<DbTransaction, 'id' | 'user_id'>
-): Promise<DbTransaction> {
+  tx: Omit<Transaction, 'id' | 'user_id' | 'created_at'>
+): Promise<Transaction> {
   const userId = await getUserId();
   if (!userId) throw new Error('Нет авторизации');
 
@@ -40,37 +41,27 @@ export async function createTransaction(
     .single();
 
   if (error) throw error;
-  return { ...data, amount: Number(data.amount) } as DbTransaction;
+  return { ...data, amount: Number(data.amount) } as Transaction;
 }
 
-export async function patchTransaction(
-  id: string,
-  changes: Partial<Omit<DbTransaction, 'id' | 'user_id'>>
-): Promise<DbTransaction> {
-  const userId = await getUserId();
-  if (!userId) throw new Error('Нет авторизации');
 
+export async function updateTransaction(
+  id: string,
+  changes: Partial<Omit<Transaction, 'id' | 'user_id'>>
+): Promise<Transaction> {
   const { data, error } = await supabase
     .from(TABLE)
-    .update({ ...changes })
+    .update(changes)
     .eq('id', id)
-    .eq('user_id', userId)
     .select()
     .single();
 
   if (error) throw error;
-  return { ...data, amount: Number(data.amount) } as DbTransaction;
+  return { ...data, amount: Number(data.amount) } as Transaction;
 }
 
-export async function removeTransaction(id: string): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) throw new Error('Нет авторизации');
 
-  const { error } = await supabase
-    .from(TABLE)
-    .delete()
-    .eq('id', id)
-    .eq('user_id', userId);
-
+export async function deleteTransaction(id: string): Promise<void> {
+  const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }
