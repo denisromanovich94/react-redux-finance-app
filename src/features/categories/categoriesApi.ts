@@ -41,3 +41,37 @@ export async function createCategory(
   if (error) throw error;
   return data as Category;
 }
+
+export async function updateCategory(
+  id: string,
+  changes: Partial<Omit<Category, 'id' | 'user_id' | 'created_at'>>
+): Promise<Category> {
+  const userId = await getUserId();
+  if (!userId) throw new Error('Нет авторизации');
+
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update(changes)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Category;
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) throw new Error('Нет авторизации');
+
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+

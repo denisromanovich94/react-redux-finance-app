@@ -16,14 +16,8 @@ export function Register() {
       await signUp(email, password);
       notifications.show({ color: 'teal', message: 'Регистрация успешна' });
       navigate('/', { replace: true });
-    } catch (e) {
-      const message =
-    e instanceof Error
-      ? e.message
-      : typeof e === 'object' && e && 'message' in e && typeof (e as { message?: string }).message === 'string'
-      ? (e as { message: string }).message
-      : 'Ошибка регистрации';
-      notifications.show({ color: 'red', message });
+    } catch {
+      notifications.show({ color: 'red', message: 'Ошибка регистрации' });
     } finally {
       setLoading(false);
     }

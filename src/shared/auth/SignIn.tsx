@@ -16,14 +16,8 @@ export function SignIn() {
       await signIn(email, password);
       notifications.show({ color: 'teal', message: 'Вход выполнен' });
       navigate('/', { replace: true });
-    } catch (e) {
-      const message =
-    e instanceof Error
-      ? e.message
-      : typeof e === 'object' && e && 'message' in e && typeof (e as { message?: string }).message === 'string'
-      ? (e as { message: string }).message
-      : 'Ошибка входа';
-      notifications.show({ color: 'red', message });
+    } catch {
+      notifications.show({ color: 'red', message: 'Ошибка при входе' });
     } finally {
       setLoading(false);
     }

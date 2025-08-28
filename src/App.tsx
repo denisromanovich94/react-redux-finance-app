@@ -9,6 +9,8 @@ import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';
+import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { IconSun, IconMoon } from '@tabler/icons-react';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -16,7 +18,23 @@ export default function App() {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
 
-  // отслеживаем авторизацию
+  function ThemeToggle() {
+  const { setColorScheme } = useMantineColorScheme();
+  const computed = useComputedColorScheme('light', { getInitialValueInEffect: true });
+
+  return (
+    <ActionIcon
+      variant="default"
+      size="lg"
+      radius="xl"
+      aria-label="Переключить тему"
+      onClick={() => setColorScheme(computed === 'light' ? 'dark' : 'light')}
+      title={computed === 'light' ? 'Ночная тема' : 'Дневная тема'}
+    >
+      {computed === 'light' ? <IconMoon size={18} /> : <IconSun size={18} />}
+    </ActionIcon>
+  );
+}
   useEffect(() => {
     let mounted = true;
 
@@ -47,11 +65,14 @@ export default function App() {
       padding="md"
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Title order={3}>Finance App</Title>
-        </Group>
-      </AppShell.Header>
+  <Group h="100%" px="md" style={{ width: '100%' }}>
+    <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+    <Title order={3}>Finance App</Title>
+      <ThemeToggle />
+    <Group ml="auto">
+    </Group>
+  </Group>
+</AppShell.Header>
 
       <AppShell.Navbar p="sm">
         <ScrollArea type="hover" style={{ height: '100%' }}>
@@ -74,7 +95,7 @@ export default function App() {
             active={location.pathname.startsWith('/transactions')}
           />
 
-          {/* нижний блок: вход или выход */}
+
           {!authed ? (
             <NavLink
               label="Войти"

@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,ActionIcon,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,} 
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,} 
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -13,20 +13,26 @@ import {
   updateTransactionAsync,
   deleteTransactionAsync,
 } from '../features/transactions/transactionsSlice';
-import { loadCategories, addCategoryAsync } from '../features/categories/categoriesSlice';
+import { loadCategories, addCategoryAsync, updateCategoryAsync, deleteCategoryAsync } from '../features/categories/categoriesSlice';
+
 import { useEffect, useState } from 'react';
-import { IconPencil, IconTrash } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons-react';
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
 import { useMemo } from 'react';
 
 
 const colorOptions = [
-    { value: 'teal', label: 'Бирюзовый' },
+    { value: 'teal', label: 'Чайный' },
     { value: 'blue', label: 'Синий' },
     { value: 'red', label: 'Красный' },
     { value: 'yellow', label: 'Жёлтый' },
     { value: 'orange', label: 'Оранжевый' },
     { value: 'purple', label: 'Пурпурный' },
+    { value: 'black', label: 'Черный' },
+    { value: 'white', label: 'Белый' },
+    { value: 'wheat', label: 'Бежевый' },
+    { value: 'green', label: 'Зеленый' },
   ];
 export default function Transactions() {
   const dispatch = useAppDispatch();
@@ -73,29 +79,64 @@ const categoryNames = useAppSelector(selectTransactionCategoryNames);
     dispatch(deleteTransactionAsync(id));
   };
 
+const [catEditingId, setCatEditingId] = useState<string | null>(null);
+
 const canSaveCategory = newCatName.trim().length > 0;
 
 const resetNewCategoryForm = () => {
   setNewCatName('');
   setNewCatType('expense');
   setNewCatColor('teal');
+  setCatEditingId(null);
 };
 
 const handleSaveCategory = () => {
   if (!canSaveCategory) return;
 
-  dispatch(
-    addCategoryAsync({
-      name: newCatName.trim(),
-      type: newCatType,
-      color: newCatColor,
-      icon: null,
-    })
-  );
+  if (catEditingId) {
+    dispatch(
+      updateCategoryAsync({
+        id: catEditingId,
+        changes: {
+          name: newCatName.trim(),
+          type: newCatType,
+          color: newCatColor,
+          icon: null,
+        },
+      })
+    );
+  } else {
+    dispatch(
+      addCategoryAsync({
+        name: newCatName.trim(),
+        type: newCatType,
+        color: newCatColor,
+        icon: null,
+      })
+    );
+  }
 
   resetNewCategoryForm();
   setCatOpened(false);
 };
+
+const handleEditCategory = (id: string) => {
+  const c = categories.find((x) => x.id === id);
+  if (!c) return;
+  setCatEditingId(id);
+  setNewCatName(c.name);
+  setNewCatType(c.type);
+  setNewCatColor(c.color);
+  setCatTab(c.type);
+  setCatOpened(true);
+};
+
+const handleDeleteCategory = (id: string) => {
+  dispatch(deleteCategoryAsync(id));
+};
+
+
+
 const handleCategoryChange = (val: string | null) => {
   form.setFieldValue('category', val ?? '');
 
@@ -130,6 +171,23 @@ const handleAddTransaction = () => {
   form.reset();
   open();
 };
+const isSmall = useMediaQuery('(max-width: 48em)'); // sm
+const [catFull, setCatFull] = useState(false);
+const closeCategoriesModal = () => {
+  resetNewCategoryForm();
+  setCatOpened(false);
+};
+const [catTab, setCatTab] = useState<'income' | 'expense'>('expense');
+
+const incomeCategories = useMemo(
+  () => categories.filter((c) => c.type === 'income'),
+  [categories]
+);
+const expenseCategories = useMemo(
+  () => categories.filter((c) => c.type === 'expense'),
+  [categories]
+);
+
   return (
     <PageContainer maxWidth={1200}>
       <Card radius="lg" p="lg" withBorder>
@@ -141,6 +199,7 @@ const handleAddTransaction = () => {
         <Modal
           opened={opened}
           onClose={close}
+          styles={{ inner: { right: 0, left: 0 } }} 
           title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
         >
           <form
@@ -196,59 +255,157 @@ const handleAddTransaction = () => {
         </Modal>
 
         <Modal
-          opened={catOpened}
-          onClose={() => setCatOpened(false)}
-          title="Новая категория"
-        >
-          <Stack>
-            <MantineTextInput
-              label="Название"
-              placeholder="Например: Еда"
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.currentTarget.value)}
-            />
+  opened={catOpened}
+  onClose={closeCategoriesModal}
+  fullScreen={catFull || isSmall}
+  size={catFull || isSmall ? '100%' : '80%'}
+  styles={{ inner: { right: 0, left: 0 } }} 
+  title={
+    <Group justify="space-between" w="100%">
+      <Title order={4} m={0}>{catEditingId ? 'Редактировать категорию' : 'Категории'}</Title>
+      <ActionIcon variant="light" onClick={() => setCatFull((v) => !v)} title={catFull ? 'Свернуть' : 'Во весь экран'}>
+        {catFull ? <IconMinimize size={16} /> : <IconMaximize size={16} />}
+      </ActionIcon>
+    </Group>
+  }
+>
+  <Grid gutter="lg" align="start">
+    <Grid.Col span={{ base: 12, md: 7 }}>
+  <Tabs value={catTab} onChange={(v) => setCatTab((v as 'income' | 'expense') ?? 'expense')}>
+    <Tabs.List grow>
+      <Tabs.Tab value="income">Доходы</Tabs.Tab>
+      <Tabs.Tab value="expense">Расходы</Tabs.Tab>
+    </Tabs.List>
 
-            <Radio.Group
-              label="Тип"
-              value={newCatType}
-              onChange={(v) => setNewCatType(v as 'income' | 'expense')}
-            >
-              <Group mt="xs">
-                <Radio value="income" label="Доход" />
-                <Radio value="expense" label="Расход" />
-              </Group>
-            </Radio.Group>
+    <Tabs.Panel value="income" pt="md">
+      <ScrollArea style={{ maxHeight: catFull || isSmall ? 'calc(100vh - 220px)' : 520 }}>
+        <Table striped highlightOnHover withTableBorder withColumnBorders>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Название</Table.Th>
+              <Table.Th>Цвет</Table.Th>
+              <Table.Th ta="right">Действия</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {incomeCategories.map((c) => (
+              <Table.Tr key={c.id}>
+                <Table.Td>{c.name}</Table.Td>
+                <Table.Td>
+                  <Group gap="xs">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: c.color }} />
+                    <Text>{c.color}</Text>
+                  </Group>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <Group gap="xs" justify="flex-end">
+                    <Tooltip label="Редактировать">
+                      <ActionIcon variant="subtle" onClick={() => handleEditCategory(c.id)}>
+                        <IconPencil size={18} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Удалить">
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteCategory(c.id)}>
+                        <IconTrash size={18} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </ScrollArea>
+    </Tabs.Panel>
 
-            <Select
-              label="Цвет"
-              value={newCatColor}
-              onChange={(v) => setNewCatColor(v || 'teal')}
-              data={colorOptions}
-              renderOption={({ option }) => (
-                <Group gap="xs">
-                  <div
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      backgroundColor: option.value,
-                    }}
-                  />
-                  <span>{option.label}</span>
-                </Group>
-              )}
-            />
+    <Tabs.Panel value="expense" pt="md">
+      <ScrollArea style={{ maxHeight: catFull || isSmall ? 'calc(100vh - 220px)' : 520 }}>
+        <Table striped highlightOnHover withTableBorder withColumnBorders>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Название</Table.Th>
+              <Table.Th>Цвет</Table.Th>
+              <Table.Th ta="right">Действия</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {expenseCategories.map((c) => (
+              <Table.Tr key={c.id}>
+                <Table.Td>{c.name}</Table.Td>
+                <Table.Td>
+                  <Group gap="xs">
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: c.color }} />
+                    <Text>{c.color}</Text>
+                  </Group>
+                </Table.Td>
+                <Table.Td ta="right">
+                  <Group gap="xs" justify="flex-end">
+                    <Tooltip label="Редактировать">
+                      <ActionIcon variant="subtle" onClick={() => handleEditCategory(c.id)}>
+                        <IconPencil size={18} />
+                      </ActionIcon>
+                    </Tooltip>
+                    <Tooltip label="Удалить">
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteCategory(c.id)}>
+                        <IconTrash size={18} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      </ScrollArea>
+    </Tabs.Panel>
+  </Tabs>
+</Grid.Col>
 
-            <Group justify="flex-end" mt="sm">
-             <Button onClick={handleSaveCategory} disabled={!canSaveCategory}>
-  Сохранить
-</Button>
+    <Grid.Col span={{ base: 12, md: 5 }}>
+      <Stack>
+        <MantineTextInput
+          label="Название"
+          placeholder="Например: Еда"
+          value={newCatName}
+          onChange={(e) => setNewCatName(e.currentTarget.value)}
+        />
+
+        <Radio.Group label="Тип" value={newCatType} onChange={(v) => setNewCatType(v as 'income' | 'expense')}>
+          <Group mt="xs">
+            <Radio value="income" label="Доход" />
+            <Radio value="expense" label="Расход" />
+          </Group>
+        </Radio.Group>
+
+        <Select
+          label="Цвет"
+          value={newCatColor}
+          onChange={(v) => setNewCatColor(v || 'teal')}
+          data={colorOptions}
+          renderOption={({ option }) => (
+            <Group gap="xs">
+              <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: option.value }} />
+              <span>{option.label}</span>
             </Group>
-          </Stack>
-        </Modal>
+          )}
+        />
 
+        <Group justify="flex-end" mt="sm">
+          {catEditingId && (
+            <Button variant="subtle" onClick={resetNewCategoryForm}>
+              Отмена
+            </Button>
+          )}
+          <Button onClick={handleSaveCategory} disabled={!canSaveCategory}>
+            {catEditingId ? 'Обновить' : 'Сохранить'}
+          </Button>
+        </Group>
+      </Stack>
+    </Grid.Col>
+  </Grid>
+</Modal>
         <Button variant="light" onClick={() => setCatOpened(true)} mb="md">
-          + Добавить категорию
+          + Категории
         </Button>
 
         <Select
