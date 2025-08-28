@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,} 
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,} 
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -249,7 +249,14 @@ const expenseCategories = useMemo(
               {...form.getInputProps('amount')}
               mb="sm"
             />
-
+<Textarea
+  label="Комментарий"
+  placeholder="Необязательное примечание"
+  autosize
+  minRows={2}
+  {...form.getInputProps('comment')}
+  mb="sm"
+/>
             <Button type="submit" mt="md">Сохранить</Button>
           </form>
         </Modal>
@@ -456,6 +463,7 @@ const expenseCategories = useMemo(
                 <Table.Th>Дата</Table.Th>
                 <Table.Th>Категория</Table.Th>
                 <Table.Th ta="right">Сумма</Table.Th>
+                <Table.Th>Комментарий</Table.Th>
                 <Table.Th ta="right">Действия</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -481,6 +489,9 @@ const expenseCategories = useMemo(
                       {formatRub(r.amount)}
                     </Text>
                   </Table.Td>
+                  <Table.Td style={{ maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {r.comment ?? '—'}
+      </Table.Td>
                   <Table.Td ta="right">
                     <Group gap="xs" justify="flex-end">
                       <Tooltip label="Редактировать">

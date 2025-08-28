@@ -7,6 +7,7 @@ export type Transaction = {
   date: string;  
   category: string;
   amount: number;   
+  comment: string | null;
   created_at?: string;
 };
 
