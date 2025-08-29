@@ -8,7 +8,7 @@ import StatCard from '../shared/ui/StatCard';
 import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney } from '@tabler/icons-react';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
-import dayjs from 'dayjs';
+import dayjs from '../shared/dayjs';
 
 export default function Overview() {
   const dispatch = useAppDispatch();

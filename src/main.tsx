@@ -11,6 +11,14 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import '@mantine/charts/styles.css';
 import '@mantine/dates/styles.css';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import 'dayjs/locale/ru';
+
+dayjs.extend(customParseFormat);
+dayjs.locale('ru');
+
+
 
 const colorSchemeManager = localStorageColorSchemeManager({
   key: 'mantine-color-scheme',

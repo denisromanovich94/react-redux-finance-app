@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAppSelector } from '../../hooks';
 import type { DefaultMantineColor } from '@mantine/core';
-import dayjs from 'dayjs';
+import dayjs from '../../shared/dayjs';
 import 'dayjs/locale/ru';
 
 type PieDatum = { name: string; value: number; color: DefaultMantineColor };

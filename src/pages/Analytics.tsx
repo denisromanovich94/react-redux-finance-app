@@ -5,7 +5,7 @@ import { PieChart } from '@mantine/charts';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { useAppSelector } from '../hooks';
-import dayjs from 'dayjs';
+import dayjs from '../shared/dayjs';
 
 export default function Analytics() {
   const [range, setRange] = useState<[Date | null, Date | null]>([null, null]);

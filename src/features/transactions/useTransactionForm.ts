@@ -29,7 +29,6 @@ export function useTransactionForm() {
       date: (v) => (v ? null : 'Выберите дату'),
       category: (v) => (v ? null : 'Выберите категорию'),
       amount: (v) => (Number(v) !== 0 ? null : 'Сумма не должна быть равна 0'),
-      // comment необязателен
     },
   });
 
