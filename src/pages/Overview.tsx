@@ -9,6 +9,7 @@ import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney } from '@tab
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
 import dayjs from '../shared/dayjs';
+import { selectTotalHours, selectHourlyRate } from '../features/transactions/selectors';
 
 export default function Overview() {
   const dispatch = useAppDispatch();
@@ -55,7 +56,8 @@ export default function Overview() {
     const latestKey = keys[keys.length - 1];
     return byMonth.get(latestKey)!;
   }, [monthTotals, transactions]);
-
+const totalHours = useAppSelector(selectTotalHours);
+const hourlyRate = useAppSelector(selectHourlyRate);
   return (
     <PageContainer maxWidth={1200}>
       <Title order={2} mb="md">Обзор</Title>
@@ -89,8 +91,7 @@ export default function Overview() {
             icon={<IconTrendingDown size={18} />}
           />
         </Grid.Col>
-
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
             label="Накопления (общие)"
             value={formatRub(Math.max(totals.balance, 0), false)}
@@ -98,6 +99,21 @@ export default function Overview() {
             icon={<IconPigMoney size={18} />}
           />
         </Grid.Col>
+<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+          <StatCard
+  label="Часы работы"
+  value={totalHours}
+  icon="🕒"
+/>
+        </Grid.Col>
+<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+          <StatCard
+  label="Стоимость работы в час"
+  value={hourlyRate.toFixed(2)}
+  icon="💰"
+/>
+        </Grid.Col>
+
       </Grid>
 
       <Title order={3} mt="xl" mb="md">Доходы vs Расходы</Title>

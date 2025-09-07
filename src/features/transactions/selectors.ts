@@ -28,3 +28,44 @@ export const makeSelectVisibleTransactions = (
 
     return result;
   });
+
+
+export const selectTotalHours = createSelector(
+  (state: RootState) => state.transactions.items,
+  (items) =>
+    items.reduce((sum, t) => sum + (t.hours ?? 0), 0)
+);
+
+
+export const selectHourlyRate = createSelector(
+  [(state: RootState) => state.transactions.items],
+  (items) => {
+    let totalIncome = 0;
+    let totalHours = 0;
+
+    for (const tx of items) {
+      if (tx.amount > 0 && tx.hours && tx.hours > 0) {
+        totalIncome += tx.amount;
+        totalHours += tx.hours;
+      }
+    }
+
+    if (totalHours === 0) return 0;
+
+    return totalIncome / totalHours;
+  }
+);
+
+
+export const selectCategoryUsageCount = createSelector(
+  [(state: RootState) => state.transactions.items],
+  (transactions) => {
+    const countMap: Record<string, number> = {};
+    for (const tx of transactions) {
+      countMap[tx.category] = (countMap[tx.category] || 0) + 1;
+    }
+    return countMap;
+  }
+);
+
+

@@ -7,12 +7,12 @@ export type Transaction = {
   date: string;  
   category: string;
   amount: number;   
+  hours?: number;
   comment: string | null;
   created_at?: string;
 };
 
 const TABLE = 'transactions';
-
 
 export async function getTransactions(): Promise<Transaction[]> {
   const userId = await getUserId();
@@ -25,9 +25,14 @@ export async function getTransactions(): Promise<Transaction[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((t) => ({ ...t, amount: Number(t.amount) }));
+  return (data ?? []).map((t) => {
+    return {
+      ...t,
+      amount: Number(t.amount),
+      hours: t.hours !== null && t.hours !== undefined ? Number(t.hours) : 0,
+    };
+  });
 }
-
 
 export async function createTransaction(
   tx: Omit<Transaction, 'id' | 'user_id' | 'created_at'>
@@ -42,9 +47,13 @@ export async function createTransaction(
     .single();
 
   if (error) throw error;
-  return { ...data, amount: Number(data.amount) } as Transaction;
-}
 
+  return {
+    ...data,
+    amount: Number(data.amount),
+    hours: data.hours !== null && data.hours !== undefined ? Number(data.hours) : 0,
+  } as Transaction;
+}
 
 export async function updateTransaction(
   id: string,
@@ -58,11 +67,17 @@ export async function updateTransaction(
     .single();
 
   if (error) throw error;
-  return { ...data, amount: Number(data.amount) } as Transaction;
-}
 
+  return {
+    ...data,
+    amount: Number(data.amount),
+    hours: data.hours !== null && data.hours !== undefined ? Number(data.hours) : 0,
+  } as Transaction;
+}
 
 export async function deleteTransaction(id: string): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
 }
+
+

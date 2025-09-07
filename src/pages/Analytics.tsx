@@ -27,25 +27,42 @@ export default function Analytics() {
     type: null,
   });
 
-  const inRange = (dateStr: string) => {
-    if (!range[0] && !range[1]) return true;
-    const ts = dayjs(dateStr, 'DD.MM.YYYY').valueOf();
-    const fromTs = range[0] ? dayjs(range[0]).startOf('day').valueOf() : -Infinity;
-    const toTs = range[1] ? dayjs(range[1]).endOf('day').valueOf() : Infinity;
-    return ts >= fromTs && ts <= toTs;
-  };
-
+const currentRange = range;
 const filteredTx = useMemo(() => {
   if (!catModal.category) return [];
-  return transactions.filter((t) => t.category === catModal.category && inRange(t.date));
-}, [transactions, catModal.category, range[0], range[1]]);
+
+  const inRangeFn = (dateStr: string) => {
+    if (!currentRange[0] && !currentRange[1]) return true;
+    const ts = dayjs(dateStr, 'DD.MM.YYYY').valueOf();
+    const fromTs = currentRange[0] ? dayjs(currentRange[0]).startOf('day').valueOf() : -Infinity;
+    const toTs = currentRange[1] ? dayjs(currentRange[1]).endOf('day').valueOf() : Infinity;
+    return ts >= fromTs && ts <= toTs;
+  };
+  return transactions.filter((t) => t.category === catModal.category && inRangeFn(t.date));
+}, [transactions, catModal.category, currentRange]);
 
   const openCatModal = (category: string, type: 'income' | 'expense') =>
     setCatModal({ open: true, category, type });
 
   const closeCatModal = () =>
     setCatModal({ open: false, category: null, type: null });
+const hourlyRateForCategory = useMemo(() => {
+  if (!filteredTx.length) return 0;
 
+  let totalIncome = 0;
+  let totalHours = 0;
+
+  for (const tx of filteredTx) {
+    if (tx.amount > 0 && tx.hours && tx.hours > 0) {
+      totalIncome += tx.amount;
+      totalHours += tx.hours;
+    }
+  }
+
+  if (totalHours === 0) return 0;
+
+  return totalIncome / totalHours;
+}, [filteredTx]);
   return (
     <PageContainer>
       <Card radius="lg" p="lg" withBorder mb="lg">
@@ -101,24 +118,6 @@ const filteredTx = useMemo(() => {
           </Card>
         </Grid.Col>
 
-        {/* <Grid.Col span={{ base: 12, md: 12, lg: 4 }}>
-          <Card radius="lg" p="lg" withBorder>
-            <Title order={3} mb="md">
-              Доходы vs Расходы по месяцам
-            </Title>
-            <AreaChart
-              h={280}
-              data={trendData}
-              dataKey="month"
-              series={[
-                { name: 'income', label: 'Доход', color: 'teal' },
-                { name: 'expenses', label: 'Расход', color: 'red' },
-              ]}
-              withLegend
-              withTooltip
-            />
-          </Card>
-        </Grid.Col> */}
       </Grid>
 
       <Modal
@@ -131,40 +130,48 @@ const filteredTx = useMemo(() => {
         styles={{ inner: { right: 0, left: 0 } }}
       >
         {filteredTx.length === 0 ? (
-          <Text c="dimmed">За выбранный период нет записей.</Text>
-        ) : (
-          <Table striped highlightOnHover withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Дата</Table.Th>
-                <Table.Th ta="right">Сумма</Table.Th>
-                <Table.Th>Комментарий</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filteredTx.map((t) => (
-                <Table.Tr key={t.id}>
-                  <Table.Td>{t.date}</Table.Td>
-                  <Table.Td ta="right">
-                    <Text c={t.amount < 0 ? 'red' : 'green'}>
-                      {t.amount.toLocaleString('ru-RU')}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td
-                    style={{
-                      maxWidth: 420,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {t.comment ?? '—'}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
+  <Text c="dimmed">За выбранный период нет записей.</Text>
+) : (
+  <>
+    {catModal.type === 'income' && (
+      <Text mb="sm" fw={500}>
+        Стоимость работы в час: {hourlyRateForCategory.toFixed(2)}
+      </Text>
+    )}
+    <Table striped highlightOnHover withTableBorder>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Дата</Table.Th>
+          <Table.Th ta="right">Сумма</Table.Th>
+          <Table.Th>Комментарий</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {filteredTx.map((t) => (
+          <Table.Tr key={t.id}>
+            <Table.Td>{t.date}</Table.Td>
+            <Table.Td ta="right">
+              <Text c={t.amount < 0 ? 'red' : 'green'}>
+                {t.amount.toLocaleString('ru-RU')}
+              </Text>
+            </Table.Td>
+            <Table.Td
+              style={{
+                maxWidth: 420,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t.comment ?? '—'}
+            </Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  </>
+)}
+
       </Modal>
     </PageContainer>
   );

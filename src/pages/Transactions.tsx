@@ -20,7 +20,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons-react';
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
 import { useMemo } from 'react';
-
+import { selectCategoryUsageCount } from '../features/transactions/selectors';
 
 const colorOptions = [
     { value: 'teal', label: 'Чайный' },
@@ -34,6 +34,7 @@ const colorOptions = [
     { value: 'wheat', label: 'Бежевый' },
     { value: 'green', label: 'Зеленый' },
   ];
+  
 export default function Transactions() {
   const dispatch = useAppDispatch();
   const transactions = useAppSelector((s) => s.transactions.items);
@@ -54,13 +55,23 @@ export default function Transactions() {
     dispatch(loadTransactions());
     dispatch(loadCategories());
   }, [dispatch]);
+  const usageCount = useAppSelector(selectCategoryUsageCount) as Record<string, number>;
+  const [txType, setTxType] = useState<'income' | 'expense'>('expense');
   const catByName = new Map(categories.map((c) => [c.name, c]));
-  const catOptions = categories.map((c) => ({
+  const catOptions = categories
+  .filter(c => c.type === txType)
+  .sort((a, b) => {
+    const countA = usageCount[a.name] || 0;
+    const countB = usageCount[b.name] || 0;
+    return countB - countA;
+  })
+  .map(c => ({
     value: c.name,
     label: c.name,
     color: c.color,
     type: c.type,
   }));
+  
 const visibleSelector = useMemo(
   () => makeSelectVisibleTransactions(filterCategory, typeFilter, dateQuery),
   [filterCategory, typeFilter, dateQuery]
@@ -69,12 +80,16 @@ const visibleSelector = useMemo(
 const visibleTransactions = useAppSelector(visibleSelector);
 const categoryNames = useAppSelector(selectTransactionCategoryNames);
   const onEdit = (id: string) => {
-    const tx = transactions.find((t) => t.id === id);
-    if (!tx) return;
-    setEditingId(id);
-    setFromTransaction({ date: tx.date, category: tx.category, amount: tx.amount });
-    open();
-  };
+  const tx = transactions.find((t) => t.id === id);
+if (!tx) return;
+setEditingId(id);
+setFromTransaction(tx);
+const cat = catByName.get(tx.category);
+setTxType(cat?.type ?? 'expense');
+open();
+};
+
+
   const onDelete = (id: string) => {
     dispatch(deleteTransactionAsync(id));
   };
@@ -171,7 +186,7 @@ const handleAddTransaction = () => {
   form.reset();
   open();
 };
-const isSmall = useMediaQuery('(max-width: 48em)'); // sm
+const isSmall = useMediaQuery('(max-width: 48em)'); 
 const [catFull, setCatFull] = useState(false);
 const closeCategoriesModal = () => {
   resetNewCategoryForm();
@@ -188,6 +203,7 @@ const expenseCategories = useMemo(
   [categories]
 );
 
+
   return (
     <PageContainer maxWidth={1200}>
       <Card radius="lg" p="lg" withBorder>
@@ -197,69 +213,76 @@ const expenseCategories = useMemo(
 </Button>
 
         <Modal
-          opened={opened}
-          onClose={close}
-          styles={{ inner: { right: 0, left: 0 } }} 
-          title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
-        >
-          <form
-            onSubmit={handleSubmitTransaction}
-          >
-            <DateInput
-              label="Дата"
-              placeholder="ДД.ММ.ГГГГ"
-              value={form.values.date}
-              onChange={(value) => form.setFieldValue('date', value as Date | null)}
-              valueFormat="DD.MM.YYYY"
-              locale="ru"
-              mb="sm"
-              clearable
-            />
-
-            <Select
+  opened={opened}
+  onClose={close}
+  styles={{ inner: { right: 0, left: 0 } }}
+  title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
+>
+  <form onSubmit={handleSubmitTransaction}>
+    <DateInput
+      label="Дата"
+      placeholder="ДД.MM.ГГГГ"
+      value={form.values.date}
+      onChange={(value) => form.setFieldValue('date', value as Date | null)}
+      valueFormat="DD.MM.YYYY"
+      locale="ru"
+      mb="sm"
+      clearable
+    />
+<Radio.Group
+  label="Тип транзакции"
+  value={txType}
+  onChange={(val) => setTxType(val as 'income' | 'expense')}
+  mb="sm"
+>
+  <Group mt="xs">
+    <Radio value="income" label="Доход" />
+    <Radio value="expense" label="Расход" />
+  </Group>
+</Radio.Group>
+    <Select
   label="Категория"
   placeholder="Выберите категорию"
   data={catOptions}
   value={form.values.category}
   onChange={handleCategoryChange}
-              renderOption={({ option }) => {
-                const { label } = option;
-                const color = (option as { label: string; value: string; color?: string }).color;
-
-                return (
-                  <Group gap="xs">
-                    <div
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        backgroundColor: color || 'gray',
-                      }}
-                    />
-                    <span>{label}</span>
-                  </Group>
-                );
-              }}
-              mb="sm"
-            />
-
-            <NumberInput
-              label="Сумма"
-              placeholder="Введите сумму (отрицательное — расход)"
-              {...form.getInputProps('amount')}
-              mb="sm"
-            />
-<Textarea
-  label="Комментарий"
-  placeholder="Необязательное примечание"
-  autosize
-  minRows={2}
-  {...form.getInputProps('comment')}
   mb="sm"
 />
-            <Button type="submit" mt="md">Сохранить</Button>
-          </form>
-        </Modal>
+
+    <NumberInput
+      label="Сумма"
+      placeholder="Введите сумму (отрицательное — расход)"
+      {...form.getInputProps('amount')}
+      mb="sm"
+    />
+
+
+    {form.values.category && catByName.get(form.values.category)?.type === 'income' && (
+      <NumberInput
+        label="Часы работы"
+        placeholder="Например: 8"
+        value={form.values.hours || 0}
+        onChange={(val) => form.setFieldValue('hours', Number(val) || 0)}
+        mb="sm"
+        min={0}
+      />
+    )}
+
+    <Textarea
+      label="Комментарий"
+      placeholder="Необязательное примечание"
+      autosize
+      minRows={2}
+      {...form.getInputProps('comment')}
+      mb="sm"
+    />
+
+    <Button type="submit" mt="md">
+      Сохранить
+    </Button>
+  </form>
+</Modal>
+
 
         <Modal
   opened={catOpened}
