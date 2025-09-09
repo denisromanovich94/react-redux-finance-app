@@ -21,6 +21,7 @@ import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
 import { useMemo } from 'react';
 import { selectCategoryUsageCount } from '../features/transactions/selectors';
+import { notifications } from '@mantine/notifications';
 
 const colorOptions = [
     { value: 'teal', label: 'Чайный' },
@@ -168,8 +169,33 @@ const handleCategoryChange = (val: string | null) => {
     form.setFieldValue('amount', -Math.abs(amt));
   }
 };
+
+
 const handleSubmitTransaction = form.onSubmit((values) => {
-  const payload = toTxPayload(values);
+
+  if (!values.category || values.category.trim() === '') {
+    notifications.show({
+      title: 'Выберите категорию',
+      message: 'Перед сохранением транзакции нужно выбрать категорию или создать новую',
+      color: 'red',
+    });
+    setCatOpened(true);
+    return;
+  }
+
+  const cat = catByName.get(values.category);
+  let adjustedAmount = values.amount || 0;
+
+  if (cat?.type === 'expense') {
+    adjustedAmount = -Math.abs(adjustedAmount);
+  } else {
+    adjustedAmount = Math.abs(adjustedAmount);
+  }
+
+  const payload = toTxPayload({
+    ...values,
+    amount: adjustedAmount,
+  });
 
   if (editingId) {
     dispatch(updateTransactionAsync({ id: editingId, changes: payload }));
@@ -181,6 +207,10 @@ const handleSubmitTransaction = form.onSubmit((values) => {
   setEditingId(null);
   close();
 });
+
+
+
+
 const handleAddTransaction = () => {
   setEditingId(null);
   form.reset();
@@ -218,6 +248,7 @@ const expenseCategories = useMemo(
   styles={{ inner: { right: 0, left: 0 } }}
   title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
 >
+  
   <form onSubmit={handleSubmitTransaction}>
     <DateInput
       label="Дата"

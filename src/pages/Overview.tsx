@@ -11,6 +11,7 @@ import { loadTransactions } from '../features/transactions/transactionsSlice';
 import dayjs from '../shared/dayjs';
 import { selectTotalHours, selectHourlyRate } from '../features/transactions/selectors';
 
+
 export default function Overview() {
   const dispatch = useAppDispatch();
 
@@ -58,6 +59,26 @@ export default function Overview() {
   }, [monthTotals, transactions]);
 const totalHours = useAppSelector(selectTotalHours);
 const hourlyRate = useAppSelector(selectHourlyRate);
+
+
+const now = dayjs();
+const daysPassed = now.date();
+const daysInMonth = now.daysInMonth();
+
+const currentMonthIncome = transactions
+  .filter(t => {
+    const tDate = dayjs(t.date, 'DD.MM.YYYY');
+    return tDate.isValid() &&
+          tDate.year() === now.year() &&
+          tDate.month() === now.month() &&
+          t.amount > 0;
+  })
+  .reduce((sum, t) => sum + t.amount, 0);
+
+const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * daysInMonth : 0;
+
+
+
   return (
     <PageContainer maxWidth={1200}>
       <Title order={2} mb="md">Обзор</Title>
@@ -113,6 +134,15 @@ const hourlyRate = useAppSelector(selectHourlyRate);
   icon="💰"
 />
         </Grid.Col>
+
+<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+   <StatCard
+    label="Прогноз на месяц"
+    value={formatRub(projectedIncome, false)}
+    color="cyan"
+    icon="📈"
+  />
+</Grid.Col>
 
       </Grid>
 
