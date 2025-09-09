@@ -5,7 +5,7 @@ import dayjs from '../../shared/dayjs';
 import 'dayjs/locale/ru';
 
 type PieDatum = { name: string; value: number; color: DefaultMantineColor };
-type TrendDatum = { month: string; income: number; expenses: number };
+export type TrendDatum = { month: string; income: number; expenses: number };
 type Totals = { income: number; expenses: number; balance: number };
 type MonthTotals = { incomeM: number; expensesM: number; balanceM: number };
 

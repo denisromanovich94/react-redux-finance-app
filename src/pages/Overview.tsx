@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Grid, Title, Text } from '@mantine/core';
 import PageContainer from '../shared/ui/PageContainer';
-import { AreaChart } from '@mantine/charts';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { formatRub } from '../shared/utils/currency';
 import StatCard from '../shared/ui/StatCard';
@@ -10,8 +9,23 @@ import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
 import dayjs from '../shared/dayjs';
 import { selectTotalHours, selectHourlyRate } from '../features/transactions/selectors';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Line,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
+import type { TrendDatum } from '../features/analytics/useAnalyticsData';
 
-
+type TrendWithExtras = TrendDatum & {
+  forecast?: number;
+  balance?: number;
+};
 export default function Overview() {
   const dispatch = useAppDispatch();
 
@@ -77,6 +91,11 @@ const currentMonthIncome = transactions
 
 const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * daysInMonth : 0;
 
+const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
+  ...d,
+  balance: d.income - d.expenses,
+  forecast: projectedIncome, 
+}));
 
 
   return (
@@ -147,17 +166,20 @@ const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * day
       </Grid>
 
       <Title order={3} mt="xl" mb="md">Доходы vs Расходы</Title>
-      <AreaChart
-        h={250}
-        data={trendData}
-        dataKey="month"
-        series={[
-          { name: 'income', color: 'teal' },
-          { name: 'expenses', color: 'red' },
-        ]}
-        withLegend
-        withTooltip
-      />
+<ResponsiveContainer width="100%" height={300}>
+  <ComposedChart data={trendWithForecast}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="month" />
+    <YAxis />
+    <Tooltip formatter={(value: number) => formatRub(value, false)} />
+    <Legend />
+    <Bar dataKey="forecast" barSize={20} fill="#0ea5e9" name="Прогноз" />
+    <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
+    <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
+<Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
+  </ComposedChart>
+</ResponsiveContainer>
+
     </PageContainer>
   );
 }
