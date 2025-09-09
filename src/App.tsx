@@ -12,6 +12,8 @@ import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { IconSun, IconMoon } from '@tabler/icons-react';
 
+
+
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
   const location = useLocation();
