@@ -11,8 +11,8 @@ import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { IconSun, IconMoon } from '@tabler/icons-react';
-
-
+import Tracker from './pages/Tracker';
+import CalendarPage from './pages/CalendarPage';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -84,6 +84,7 @@ export default function App() {
             to="/"
             active={location.pathname === '/'}
           />
+          
           <NavLink
             label="Аналитика"
             component={Link}
@@ -96,8 +97,18 @@ export default function App() {
             to="/transactions"
             active={location.pathname.startsWith('/transactions')}
           />
-
-
+<NavLink
+            label="Тайм трекер Beta"
+            component={Link}
+            to="/tracker"
+            active={location.pathname.startsWith('/tracker')}
+          />
+<NavLink
+  label="Календарь Beta"
+  component={Link}
+  to="/calendar"
+  active={location.pathname.startsWith('/calendar')}
+/>
           {!authed ? (
             <NavLink
               label="Войти"
@@ -124,8 +135,8 @@ export default function App() {
           <Route path="/" element={<RequireAuth><Overview /></RequireAuth>} />
           <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
-
-
+<Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
+<Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>
