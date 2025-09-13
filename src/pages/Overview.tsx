@@ -26,6 +26,7 @@ type TrendWithExtras = TrendDatum & {
   forecast?: number;
   balance?: number;
 };
+
 export default function Overview() {
   const dispatch = useAppDispatch();
 
@@ -71,32 +72,43 @@ export default function Overview() {
     const latestKey = keys[keys.length - 1];
     return byMonth.get(latestKey)!;
   }, [monthTotals, transactions]);
-const totalHours = useAppSelector(selectTotalHours);
-const hourlyRate = useAppSelector(selectHourlyRate);
 
+  const totalHours = useAppSelector(selectTotalHours);
+  const hourlyRate = useAppSelector(selectHourlyRate);
 
-const now = dayjs();
-const daysPassed = now.date();
-const daysInMonth = now.daysInMonth();
+  const now = dayjs();
+  const daysPassed = now.date();
+  const daysInMonth = now.daysInMonth();
 
-const currentMonthIncome = transactions
-  .filter(t => {
-    const tDate = dayjs(t.date, 'DD.MM.YYYY');
-    return tDate.isValid() &&
-          tDate.year() === now.year() &&
-          tDate.month() === now.month() &&
-          t.amount > 0;
-  })
-  .reduce((sum, t) => sum + t.amount, 0);
+  const currentMonthIncome = transactions
+    .filter(t => {
+      const tDate = dayjs(t.date, 'DD.MM.YYYY');
+      return tDate.isValid() &&
+            tDate.year() === now.year() &&
+            tDate.month() === now.month() &&
+            t.amount > 0;
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
 
-const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * daysInMonth : 0;
+  const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * daysInMonth : 0;
 
-const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
-  ...d,
-  balance: d.income - d.expenses,
-  forecast: projectedIncome, 
-}));
+  const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
+    ...d,
+    balance: d.income - d.expenses,
+    forecast: projectedIncome, 
+  }));
 
+  const currentMonthHours = transactions
+    .filter(t => {
+      const tDate = dayjs(t.date, 'DD.MM.YYYY');
+      return tDate.isValid() &&
+             tDate.year() === now.year() &&
+             tDate.month() === now.month() &&
+             (t.hours ?? 0) > 0;
+    })
+    .reduce((sum, t) => sum + (t.hours ?? 0), 0);
+
+  const avgHoursPerDay = daysPassed > 0 ? currentMonthHours / daysPassed : 0;
 
   return (
     <PageContainer maxWidth={1200}>
@@ -131,6 +143,7 @@ const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
             icon={<IconTrendingDown size={18} />}
           />
         </Grid.Col>
+
         <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
             label="Накопления (общие)"
@@ -139,46 +152,56 @@ const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
             icon={<IconPigMoney size={18} />}
           />
         </Grid.Col>
-<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
-  label="Часы работы"
-  value={totalHours}
-  icon="🕒"
-/>
-        </Grid.Col>
-<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
-          <StatCard
-  label="Стоимость работы в час"
-  value={hourlyRate.toFixed(2)}
-  icon="💰"
-/>
+            label="Часы работы"
+            value={totalHours}
+            icon="🕒"
+          />
         </Grid.Col>
 
-<Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
-   <StatCard
-    label="Прогноз на месяц"
-    value={formatRub(projectedIncome, false)}
-    color="cyan"
-    icon="📈"
-  />
-</Grid.Col>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Стоимость работы в час"
+            value={hourlyRate.toFixed(2)}
+            icon="💰"
+          />
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Прогноз на месяц"
+            value={formatRub(projectedIncome, false)}
+            color="cyan"
+            icon="📈"
+          />
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+          <StatCard
+            label="Часы работы в день"
+            value={avgHoursPerDay.toFixed(2)}
+            icon="⏱️"
+          />
+        </Grid.Col>
 
       </Grid>
 
       <Title order={3} mt="xl" mb="md">Доходы vs Расходы</Title>
-<ResponsiveContainer width="100%" height={300}>
-  <ComposedChart data={trendWithForecast}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis dataKey="month" />
-    <YAxis />
-    <Tooltip formatter={(value: number) => formatRub(value, false)} />
-    <Legend />
-    <Bar dataKey="forecast" barSize={20} fill="#0ea5e9" name="Прогноз" />
-    <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
-    <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
-<Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
-  </ComposedChart>
-</ResponsiveContainer>
+      <ResponsiveContainer width="100%" height={300}>
+        <ComposedChart data={trendWithForecast}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="month" />
+          <YAxis />
+          <Tooltip formatter={(value: number) => formatRub(value, false)} />
+          <Legend />
+          <Bar dataKey="forecast" barSize={20} fill="#0ea5e9" name="Прогноз" />
+          <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
+          <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
+          <Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
+        </ComposedChart>
+      </ResponsiveContainer>
 
     </PageContainer>
   );
