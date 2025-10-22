@@ -1,18 +1,35 @@
-import { useState, useMemo } from 'react';
-import { Card, Title, Modal, Table, Group, Text, Grid } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
+import { useState, useMemo, useEffect } from 'react';
+import { Card, Title, Modal, Table, Group, Text, Grid, Button } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { PieChart } from '@mantine/charts';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
-import { useAppSelector } from '../hooks';
+import { useAppDispatch, useAppSelector } from '../hooks';
+import { loadTransactions } from '../features/transactions/transactionsSlice';
 import dayjs from '../shared/dayjs';
 
 export default function Analytics() {
-  const [range, setRange] = useState<[Date | null, Date | null]>([null, null]);
+  const dispatch = useAppDispatch();
+  const loading = useAppSelector((s) => s.transactions.loading);
+  const itemsCount = useAppSelector((s) => s.transactions.items.length);
+
+  useEffect(() => {
+    if (!loading && itemsCount === 0) {
+      dispatch(loadTransactions());
+    }
+  }, [dispatch, loading, itemsCount]);
+
+  const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
+
+  const selectedDate = dayjs(selectedMonth, 'YYYY-MM');
+  const isCurrentMonth = selectedDate.format('YYYY-MM') === dayjs().format('YYYY-MM');
+
+  const monthStart = selectedDate.startOf('month').toDate();
+  const monthEnd = selectedDate.endOf('month').toDate();
 
   const { expenseData, incomeData } = useAnalyticsData({
-    from: range[0],
-    to: range[1],
+    from: monthStart,
+    to: monthEnd,
   });
 
   const transactions = useAppSelector((s) => s.transactions.items);
@@ -27,25 +44,36 @@ export default function Analytics() {
     type: null,
   });
 
-const currentRange = range;
 const filteredTx = useMemo(() => {
   if (!catModal.category) return [];
 
   const inRangeFn = (dateStr: string) => {
-    if (!currentRange[0] && !currentRange[1]) return true;
     const ts = dayjs(dateStr, 'DD.MM.YYYY').valueOf();
-    const fromTs = currentRange[0] ? dayjs(currentRange[0]).startOf('day').valueOf() : -Infinity;
-    const toTs = currentRange[1] ? dayjs(currentRange[1]).endOf('day').valueOf() : Infinity;
+    const fromTs = dayjs(monthStart).startOf('day').valueOf();
+    const toTs = dayjs(monthEnd).endOf('day').valueOf();
     return ts >= fromTs && ts <= toTs;
   };
   return transactions.filter((t) => t.category === catModal.category && inRangeFn(t.date));
-}, [transactions, catModal.category, currentRange]);
+}, [transactions, catModal.category, monthStart, monthEnd]);
 
   const openCatModal = (category: string, type: 'income' | 'expense') =>
     setCatModal({ open: true, category, type });
 
   const closeCatModal = () =>
     setCatModal({ open: false, category: null, type: null });
+
+  const handlePrevMonth = () => {
+    setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').subtract(1, 'month').format('YYYY-MM'));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').add(1, 'month').format('YYYY-MM'));
+  };
+
+  const handleCurrentMonth = () => {
+    setSelectedMonth(dayjs().format('YYYY-MM'));
+  };
+
 const hourlyRateForCategory = useMemo(() => {
   if (!filteredTx.length) return 0;
 
@@ -68,14 +96,31 @@ const hourlyRateForCategory = useMemo(() => {
       <Card radius="lg" p="lg" withBorder mb="lg">
         <Group justify="space-between" align="center">
           <Title order={2}>Аналитика</Title>
-          <DatePickerInput
-  type="range"
-  value={range}
-  onChange={(val) => setRange(val as [Date | null, Date | null])}
-  placeholder="Период"
-  valueFormat="DD.MM.YYYY"
-  allowSingleDateInRange
-/>
+          <Group gap="xs">
+            <Button
+              variant="default"
+              size="xs"
+              leftSection={<IconChevronLeft size={16} />}
+              onClick={handlePrevMonth}
+            >
+              Пред.
+            </Button>
+            <Button
+              variant={isCurrentMonth ? 'filled' : 'default'}
+              size="xs"
+              onClick={handleCurrentMonth}
+            >
+              {selectedDate.format('MMMM YYYY')}
+            </Button>
+            <Button
+              variant="default"
+              size="xs"
+              rightSection={<IconChevronRight size={16} />}
+              onClick={handleNextMonth}
+            >
+              След.
+            </Button>
+          </Group>
         </Group>
       </Card>
 

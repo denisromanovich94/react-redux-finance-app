@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,} 
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,}
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -7,6 +7,8 @@ import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { useTransactionForm, toTxPayload } from '../features/transactions/useTransactionForm';
 import { formatRub } from '../shared/utils/currency';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import dayjs from '../shared/dayjs';
 import {
   loadTransactions,
   addTransactionAsync,
@@ -15,11 +17,10 @@ import {
 } from '../features/transactions/transactionsSlice';
 import { loadCategories, addCategoryAsync, updateCategoryAsync, deleteCategoryAsync } from '../features/categories/categoriesSlice';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons-react';
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
-import { useMemo } from 'react';
 import { selectCategoryUsageCount } from '../features/transactions/selectors';
 import { notifications } from '@mantine/notifications';
 
@@ -47,11 +48,13 @@ export default function Transactions() {
   const { form, setFromTransaction } = useTransactionForm();
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
-  const [dateQuery, setDateQuery] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
   const [catOpened, setCatOpened] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
   const [newCatColor, setNewCatColor] = useState('teal');
+  const [displayCount, setDisplayCount] = useState(15);
+  const observerTarget = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     dispatch(loadTransactions());
     dispatch(loadCategories());
@@ -74,12 +77,65 @@ export default function Transactions() {
   }));
   
 const visibleSelector = useMemo(
-  () => makeSelectVisibleTransactions(filterCategory, typeFilter, dateQuery),
-  [filterCategory, typeFilter, dateQuery]
+  () => makeSelectVisibleTransactions(filterCategory, typeFilter, selectedMonth),
+  [filterCategory, typeFilter, selectedMonth]
 );
 
-const visibleTransactions = useAppSelector(visibleSelector);
-const categoryNames = useAppSelector(selectTransactionCategoryNames);
+const allVisibleTransactions = useAppSelector(visibleSelector);
+const visibleTransactions = useMemo(
+  () => allVisibleTransactions.slice(0, displayCount),
+  [allVisibleTransactions, displayCount]
+);
+const hasMore = allVisibleTransactions.length > displayCount;
+const allCategoryNames = useAppSelector(selectTransactionCategoryNames);
+
+const filteredCategoryNames = useMemo(() => {
+  if (typeFilter === 'all') return allCategoryNames;
+
+  return categories
+    .filter(c => c.type === typeFilter)
+    .map(c => c.name)
+    .filter(name => allCategoryNames.includes(name));
+}, [allCategoryNames, categories, typeFilter]);
+
+useEffect(() => {
+  setDisplayCount(15);
+}, [filterCategory, typeFilter, selectedMonth]);
+
+useEffect(() => {
+  // Сбросить выбранную категорию, если она не соответствует типу
+  if (filterCategory && !filteredCategoryNames.includes(filterCategory)) {
+    setFilterCategory(null);
+  }
+}, [typeFilter, filterCategory, filteredCategoryNames]);
+
+const loadMore = useCallback(() => {
+  if (hasMore) {
+    setDisplayCount(prev => prev + 15);
+  }
+}, [hasMore]);
+
+useEffect(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMore();
+      }
+    },
+    { threshold: 0.1 }
+  );
+
+  const currentTarget = observerTarget.current;
+  if (currentTarget) {
+    observer.observe(currentTarget);
+  }
+
+  return () => {
+    if (currentTarget) {
+      observer.unobserve(currentTarget);
+    }
+  };
+}, [hasMore, loadMore]);
   const onEdit = (id: string) => {
   const tx = transactions.find((t) => t.id === id);
 if (!tx) return;
@@ -216,6 +272,22 @@ const handleAddTransaction = () => {
   form.reset();
   open();
 };
+
+const selectedDate = dayjs(selectedMonth, 'YYYY-MM');
+const isCurrentMonth = selectedDate.format('YYYY-MM') === dayjs().format('YYYY-MM');
+
+const handlePrevMonth = () => {
+  setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').subtract(1, 'month').format('YYYY-MM'));
+};
+
+const handleNextMonth = () => {
+  setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').add(1, 'month').format('YYYY-MM'));
+};
+
+const handleCurrentMonth = () => {
+  setSelectedMonth(dayjs().format('YYYY-MM'));
+};
+
 const isSmall = useMediaQuery('(max-width: 48em)'); 
 const [catFull, setCatFull] = useState(false);
 const closeCategoriesModal = () => {
@@ -466,13 +538,13 @@ const expenseCategories = useMemo(
   </Grid>
 </Modal>
         <Button variant="light" onClick={() => setCatOpened(true)} mb="md">
-          + Категории
+          Добавить категорию
         </Button>
 
         <Select
   label="Фильтр по категории"
   placeholder="Все категории"
-  data={categoryNames}
+  data={filteredCategoryNames}
   value={filterCategory}
   onChange={setFilterCategory}
   clearable
@@ -490,13 +562,31 @@ const expenseCategories = useMemo(
           mb="md"
         />
 
-        <MantineTextInput
-          label="Поиск по дате"
-          placeholder="Например: 08.2025 или 01.08.2025"
-          value={dateQuery}
-          onChange={(e) => setDateQuery(e.currentTarget.value)}
-          mb="md"
-        />
+        <Group gap="xs" mb="md" justify="center">
+          <Button
+            variant="default"
+            size="xs"
+            leftSection={<IconChevronLeft size={16} />}
+            onClick={handlePrevMonth}
+          >
+            Пред.
+          </Button>
+          <Button
+            variant={isCurrentMonth ? 'filled' : 'default'}
+            size="xs"
+            onClick={handleCurrentMonth}
+          >
+            {selectedDate.format('MMMM YYYY')}
+          </Button>
+          <Button
+            variant="default"
+            size="xs"
+            rightSection={<IconChevronRight size={16} />}
+            onClick={handleNextMonth}
+          >
+            След.
+          </Button>
+        </Group>
 
         {transactionsLoading && (
           <Center my="md">
@@ -522,8 +612,11 @@ const expenseCategories = useMemo(
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {visibleTransactions.map((r) => (
-                <Table.Tr key={r.id}>
+              {visibleTransactions.map((r, index) => (
+                <Table.Tr
+                  key={r.id}
+                  ref={index === visibleTransactions.length - 1 ? observerTarget : null}
+                >
                   <Table.Td>{r.date}</Table.Td>
                   <Table.Td>
                     <Group gap="xs">
@@ -564,6 +657,13 @@ const expenseCategories = useMemo(
               ))}
             </Table.Tbody>
           </Table>
+        )}
+
+        {!transactionsLoading && !transactionsError && visibleTransactions.length > 0 && (
+          <Text c="dimmed" size="sm" ta="center" mt="md">
+            Показано {visibleTransactions.length} из {allVisibleTransactions.length} транзакций
+            {hasMore && ' (прокрутите для загрузки еще)'}
+          </Text>
         )}
       </Card>
     </PageContainer>

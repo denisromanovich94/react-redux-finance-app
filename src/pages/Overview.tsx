@@ -1,14 +1,14 @@
-import { useEffect, useMemo } from 'react';
-import { Grid, Title, Text } from '@mantine/core';
+import { useEffect, useMemo, useState } from 'react';
+import { Grid, Title, Text, Group, Button, useMantineColorScheme } from '@mantine/core';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { formatRub } from '../shared/utils/currency';
 import StatCard from '../shared/ui/StatCard';
-import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney } from '@tabler/icons-react';
+import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
 import dayjs from '../shared/dayjs';
-import { selectTotalHours, selectHourlyRate } from '../features/transactions/selectors';
+import { makeSelectMonthlyHours, makeSelectMonthlyHourlyRate } from '../features/transactions/selectors';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -29,11 +29,15 @@ type TrendWithExtras = TrendDatum & {
 
 export default function Overview() {
   const dispatch = useAppDispatch();
+  const { colorScheme } = useMantineColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const loading = useAppSelector((s) => s.transactions.loading);
   const error = useAppSelector((s) => s.transactions.error);
   const transactions = useAppSelector((s) => s.transactions.items);
   const itemsCount = transactions.length;
+
+  const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
 
   useEffect(() => {
     if (!loading && itemsCount === 0) {
@@ -41,78 +45,116 @@ export default function Overview() {
     }
   }, [dispatch, loading, itemsCount]);
 
-  const { trendData, monthTotals, totals } = useAnalyticsData();
+  const { trendData, totals } = useAnalyticsData();
 
   const displayMonthTotals = useMemo(() => {
-    const hasDataNow =
-      monthTotals.incomeM !== 0 || monthTotals.expensesM !== 0 || monthTotals.balanceM !== 0;
+    let incomeM = 0;
+    let expensesM = 0;
 
-    if (hasDataNow || transactions.length === 0) {
-      return monthTotals;
-    }
-
-    const byMonth = new Map<string, { incomeM: number; expensesM: number; balanceM: number }>();
     for (const t of transactions) {
       const d = dayjs(t.date, 'DD.MM.YYYY');
       if (!d.isValid()) continue;
-      const key = d.format('YYYY-MM');
-      if (!byMonth.has(key)) byMonth.set(key, { incomeM: 0, expensesM: 0, balanceM: 0 });
-      const bucket = byMonth.get(key)!;
+
+      if (d.format('YYYY-MM') !== selectedMonth) continue;
+
       if (t.amount > 0) {
-        bucket.incomeM += t.amount;
+        incomeM += t.amount;
       } else {
-        bucket.expensesM += t.amount; 
+        expensesM += t.amount;
       }
-      bucket.balanceM = bucket.incomeM + bucket.expensesM;
     }
 
-    if (byMonth.size === 0) return monthTotals;
+    return {
+      incomeM,
+      expensesM,
+      balanceM: incomeM + expensesM,
+    };
+  }, [transactions, selectedMonth]);
 
-    const keys = Array.from(byMonth.keys()).sort();
-    const latestKey = keys[keys.length - 1];
-    return byMonth.get(latestKey)!;
-  }, [monthTotals, transactions]);
+  const selectMonthlyHours = useMemo(() => makeSelectMonthlyHours(selectedMonth), [selectedMonth]);
+  const selectMonthlyHourlyRate = useMemo(() => makeSelectMonthlyHourlyRate(selectedMonth), [selectedMonth]);
 
-  const totalHours = useAppSelector(selectTotalHours);
-  const hourlyRate = useAppSelector(selectHourlyRate);
+  const monthlyHours = useAppSelector(selectMonthlyHours);
+  const monthlyHourlyRate = useAppSelector(selectMonthlyHourlyRate);
 
-  const now = dayjs();
-  const daysPassed = now.date();
-  const daysInMonth = now.daysInMonth();
+  const selectedDate = dayjs(selectedMonth, 'YYYY-MM');
+  const isCurrentMonth = selectedDate.format('YYYY-MM') === dayjs().format('YYYY-MM');
 
-  const currentMonthIncome = transactions
+  const daysPassed = isCurrentMonth ? dayjs().date() : selectedDate.daysInMonth();
+  const daysInMonth = selectedDate.daysInMonth();
+
+  const selectedMonthIncome = transactions
     .filter(t => {
       const tDate = dayjs(t.date, 'DD.MM.YYYY');
       return tDate.isValid() &&
-            tDate.year() === now.year() &&
-            tDate.month() === now.month() &&
+            tDate.year() === selectedDate.year() &&
+            tDate.month() === selectedDate.month() &&
             t.amount > 0;
     })
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const projectedIncome = daysPassed > 0 ? (currentMonthIncome / daysPassed) * daysInMonth : 0;
+  const projectedIncome = isCurrentMonth && daysPassed > 0
+    ? (selectedMonthIncome / daysPassed) * daysInMonth
+    : selectedMonthIncome;
 
-  const trendWithForecast: TrendWithExtras[] = trendData.map(d => ({
-    ...d,
-    balance: d.income - d.expenses,
-    forecast: projectedIncome, 
-  }));
+  const currentMonthKey = dayjs().format('YYYY-MM');
 
-  const currentMonthHours = transactions
-    .filter(t => {
-      const tDate = dayjs(t.date, 'DD.MM.YYYY');
-      return tDate.isValid() &&
-             tDate.year() === now.year() &&
-             tDate.month() === now.month() &&
-             (t.hours ?? 0) > 0;
-    })
-    .reduce((sum, t) => sum + (t.hours ?? 0), 0);
+  const trendWithForecast: TrendWithExtras[] = trendData.map(d => {
+    // Прогноз показываем только для текущего месяца
+    const monthKey = dayjs(d.month, 'MMM YYYY').format('YYYY-MM');
+    const showForecast = monthKey === currentMonthKey;
 
-  const avgHoursPerDay = daysPassed > 0 ? currentMonthHours / daysPassed : 0;
+    return {
+      ...d,
+      balance: d.income - d.expenses,
+      forecast: showForecast ? projectedIncome : undefined,
+    };
+  });
+
+  const avgHoursPerDay = daysPassed > 0 ? monthlyHours / daysPassed : 0;
+
+  const handlePrevMonth = () => {
+    setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').subtract(1, 'month').format('YYYY-MM'));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonth(prev => dayjs(prev, 'YYYY-MM').add(1, 'month').format('YYYY-MM'));
+  };
+
+  const handleCurrentMonth = () => {
+    setSelectedMonth(dayjs().format('YYYY-MM'));
+  };
 
   return (
     <PageContainer maxWidth={1200}>
-      <Title order={2} mb="md">Обзор</Title>
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Обзор</Title>
+        <Group gap="xs">
+          <Button
+            variant="default"
+            size="xs"
+            leftSection={<IconChevronLeft size={16} />}
+            onClick={handlePrevMonth}
+          >
+            Пред.
+          </Button>
+          <Button
+            variant={isCurrentMonth ? 'filled' : 'default'}
+            size="xs"
+            onClick={handleCurrentMonth}
+          >
+            {selectedDate.format('MMMM YYYY')}
+          </Button>
+          <Button
+            variant="default"
+            size="xs"
+            rightSection={<IconChevronRight size={16} />}
+            onClick={handleNextMonth}
+          >
+            След.
+          </Button>
+        </Group>
+      </Group>
       {loading && <Text c="dimmed" mb="md">Загрузка данных…</Text>}
       {error && <Text c="red" mb="md">Ошибка: {error}</Text>}
 
@@ -155,8 +197,8 @@ export default function Overview() {
 
         <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Часы работы"
-            value={totalHours}
+            label="Часы работы (месяц)"
+            value={monthlyHours.toFixed(1)}
             icon="🕒"
           />
         </Grid.Col>
@@ -164,14 +206,14 @@ export default function Overview() {
         <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
             label="Стоимость работы в час"
-            value={hourlyRate.toFixed(2)}
+            value={monthlyHourlyRate.toFixed(2)}
             icon="💰"
           />
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Прогноз на месяц"
+            label={isCurrentMonth ? "Прогноз на месяц" : "Доход за месяц"}
             value={formatRub(projectedIncome, false)}
             color="cyan"
             icon="📈"
@@ -191,11 +233,26 @@ export default function Overview() {
       <Title order={3} mt="xl" mb="md">Доходы vs Расходы</Title>
       <ResponsiveContainer width="100%" height={300}>
         <ComposedChart data={trendWithForecast}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
-          <YAxis />
-          <Tooltip formatter={(value: number) => formatRub(value, false)} />
-          <Legend />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#ccc'} />
+          <XAxis dataKey="month" stroke={isDark ? '#aaa' : '#666'} />
+          <YAxis stroke={isDark ? '#aaa' : '#666'} />
+          <Tooltip
+            formatter={(value: number) => formatRub(value, false)}
+            contentStyle={{
+              backgroundColor: isDark ? '#25262b' : '#fff',
+              border: `1px solid ${isDark ? '#373A40' : '#e0e0e0'}`,
+              borderRadius: '4px',
+              color: isDark ? '#C1C2C5' : '#000',
+            }}
+            labelStyle={{
+              color: isDark ? '#C1C2C5' : '#000',
+            }}
+          />
+          <Legend
+            wrapperStyle={{
+              color: isDark ? '#C1C2C5' : '#000',
+            }}
+          />
           <Bar dataKey="forecast" barSize={20} fill="#0ea5e9" name="Прогноз" />
           <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
           <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />

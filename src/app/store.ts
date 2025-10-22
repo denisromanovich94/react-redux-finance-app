@@ -3,13 +3,15 @@ import counterReducer from '../features/counter/counterSlice';
 import transactionsReducer from '../features/transactions/transactionsSlice';
 import { categoriesReducer } from '../features/categories/categoriesSlice';
 import timeTrackerReducer from '../features/timetracker/timeTrackerSlice';
+import clientsReducer from '../features/clients/clientsSlice';
 
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
     transactions: transactionsReducer,
     categories: categoriesReducer,
-    timeTracker: timeTrackerReducer, // добавили
+    timeTracker: timeTrackerReducer,
+    clients: clientsReducer,
   },
 });
 

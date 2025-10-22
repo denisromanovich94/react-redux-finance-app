@@ -15,14 +15,22 @@ export const makeSelectVisibleTransactions = (
   dateQuery: string
 ) =>
   createSelector([(state: RootState) => state.transactions.items], (items) => {
-    const q = dateQuery.trim().toLowerCase();
+    const q = dateQuery.trim();
     const result: typeof items = [];
 
     for (const i of items) {
       if (filterCategory && i.category !== filterCategory) continue;
       if (typeFilter === 'income' && i.amount <= 0) continue;
       if (typeFilter === 'expense' && i.amount >= 0) continue;
-      if (q && !i.date.toLowerCase().includes(q)) continue;
+
+      // Фильтрация по месяцу в формате YYYY-MM
+      if (q) {
+        // Дата в формате DD.MM.YYYY, извлекаем MM.YYYY
+        const [, month, year] = i.date.split('.');
+        const transactionYearMonth = `${year}-${month}`;
+        if (transactionYearMonth !== q) continue;
+      }
+
       result.push(i);
     }
 
@@ -36,6 +44,19 @@ export const selectTotalHours = createSelector(
     items.reduce((sum, t) => sum + (t.hours ?? 0), 0)
 );
 
+export const makeSelectMonthlyHours = (yearMonth: string) =>
+  createSelector(
+    [(state: RootState) => state.transactions.items],
+    (items) => {
+      return items
+        .filter(t => {
+          const date = t.date; // format: DD.MM.YYYY
+          const [, month, year] = date.split('.');
+          return `${year}-${month}` === yearMonth;
+        })
+        .reduce((sum, t) => sum + (t.hours ?? 0), 0);
+    }
+  );
 
 export const selectHourlyRate = createSelector(
   [(state: RootState) => state.transactions.items],
@@ -55,6 +76,30 @@ export const selectHourlyRate = createSelector(
     return totalIncome / totalHours;
   }
 );
+
+export const makeSelectMonthlyHourlyRate = (yearMonth: string) =>
+  createSelector(
+    [(state: RootState) => state.transactions.items],
+    (items) => {
+      let totalIncome = 0;
+      let totalHours = 0;
+
+      for (const tx of items) {
+        const date = tx.date; // format: DD.MM.YYYY
+        const [, month, year] = date.split('.');
+        if (`${year}-${month}` !== yearMonth) continue;
+
+        if (tx.amount > 0 && tx.hours && tx.hours > 0) {
+          totalIncome += tx.amount;
+          totalHours += tx.hours;
+        }
+      }
+
+      if (totalHours === 0) return 0;
+
+      return totalIncome / totalHours;
+    }
+  );
 
 
 export const selectCategoryUsageCount = createSelector(

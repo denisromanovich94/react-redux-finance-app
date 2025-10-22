@@ -13,6 +13,7 @@ import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mant
 import { IconSun, IconMoon } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
+import FloatingTracker from './features/tracker/ui/FloatingTracker';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -84,18 +85,18 @@ export default function App() {
             to="/"
             active={location.pathname === '/'}
           />
-          
-          <NavLink
-            label="Аналитика"
-            component={Link}
-            to="/analytics"
-            active={location.pathname.startsWith('/analytics')}
-          />
+
           <NavLink
             label="Транзакции"
             component={Link}
             to="/transactions"
             active={location.pathname.startsWith('/transactions')}
+          />
+          <NavLink
+            label="Аналитика"
+            component={Link}
+            to="/analytics"
+            active={location.pathname.startsWith('/analytics')}
           />
 <NavLink
             label="Тайм трекер Beta"
@@ -139,6 +140,8 @@ export default function App() {
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+        {authed && <FloatingTracker />}
       </AppShell.Main>
     </AppShell>
   );
