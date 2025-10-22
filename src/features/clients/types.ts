@@ -1,0 +1,17 @@
+export interface Client {
+  id: string;
+  name: string;
+  telegram?: string;
+  whatsapp?: string;
+  phone?: string;
+  email?: string;
+  description?: string;
+  created_at: string;
+  user_id: string;
+}
+
+export interface ClientsState {
+  items: Client[];
+  loading: boolean;
+  error: string | null;
+}

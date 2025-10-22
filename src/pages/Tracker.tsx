@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../app/store';
 import { startSession, stopSession, setLog } from '../features/timetracker/timeTrackerSlice';
 import { saveSession, fetchSessions } from '../features/timetracker/timeTrackerThunks';
-import { Button, Group, Stack, Title, Divider, Table, Textarea, Select } from '@mantine/core';
+import { Button, Group, Stack, Title, Divider, Table, Textarea, Select, Modal, ActionIcon } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
+import { IconPencil, IconTrash } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import type { HourLog } from '../features/timetracker/types';
 
@@ -13,17 +14,36 @@ export default function Tracker() {
   const tracker = useSelector((state: RootState) => state.timeTracker);
 
   const [time, setTime] = useState(dayjs());
-  const [activity, setActivity] = useState('');
-  const [activityType, setActivityType] = useState<'работал' | 'общался с клиентами' | 'писал отклики'>('работал');
+  const [activity, setActivity] = useState(() => {
+    return localStorage.getItem('currentActivity') || '';
+  });
+  const [activityType, setActivityType] = useState<'работал' | 'общался с клиентами' | 'писал отклики'>(() => {
+    const stored = localStorage.getItem('currentActivityType');
+    if (stored === 'общался с клиентами' || stored === 'писал отклики') return stored;
+    return 'работал';
+  });
   const [sessionStart, setSessionStart] = useState<string | null>(null);
   const [sessionLogs, setSessionLogs] = useState<HourLog[]>([]);
   const [currentDayLogs, setCurrentDayLogs] = useState<HourLog[]>([]);
+  const [editModalOpened, setEditModalOpened] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editActivity, setEditActivity] = useState('');
+  const [editActivityType, setEditActivityType] = useState<'работал' | 'общался с клиентами' | 'писал отклики'>('работал');
 
   const activityOptions = [
     { value: 'работал', label: 'Работал' },
     { value: 'общался с клиентами', label: 'Общался с клиентами' },
     { value: 'писал отклики', label: 'Писал отклики' },
   ];
+
+  // Синхронизация с localStorage
+  useEffect(() => {
+    localStorage.setItem('currentActivity', activity);
+  }, [activity]);
+
+  useEffect(() => {
+    localStorage.setItem('currentActivityType', activityType);
+  }, [activityType]);
 
   useEffect(() => {
     const id = setInterval(() => setTime(dayjs()), 1000);
@@ -94,6 +114,9 @@ export default function Tracker() {
     }
 
     setActivity('');
+    setActivityType('работал');
+    localStorage.removeItem('currentActivity');
+    localStorage.removeItem('currentActivityType');
     setSessionStart(null);
   };
 
@@ -106,6 +129,40 @@ export default function Tracker() {
     const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
     const s = (sec % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
+  };
+
+  const handleEdit = (index: number) => {
+    const log = currentDayLogs[index];
+    setEditingIndex(index);
+    setEditActivity(log.activity);
+    setEditActivityType(log.activityType);
+    setEditModalOpened(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingIndex === null) return;
+
+    const updatedLogs = [...sessionLogs];
+    const logToEdit = currentDayLogs[editingIndex];
+    const globalIndex = sessionLogs.findIndex(l => l.hour === logToEdit.hour && l.endTime === logToEdit.endTime);
+
+    if (globalIndex !== -1) {
+      updatedLogs[globalIndex] = {
+        ...updatedLogs[globalIndex],
+        activity: editActivity,
+        activityType: editActivityType,
+      };
+      setSessionLogs(updatedLogs);
+    }
+
+    setEditModalOpened(false);
+    setEditingIndex(null);
+  };
+
+  const handleDelete = (index: number) => {
+    const logToDelete = currentDayLogs[index];
+    const updatedLogs = sessionLogs.filter(l => !(l.hour === logToDelete.hour && l.endTime === logToDelete.endTime));
+    setSessionLogs(updatedLogs);
   };
 
   return (
@@ -156,25 +213,50 @@ export default function Tracker() {
       {currentDayLogs.length > 0 && (
         <>
           <Title order={4}>Занятия за сегодня</Title>
-          <Table striped highlightOnHover>
-            <thead>
-              <tr>
-                <th>С</th>
-                <th>До</th>
-                <th>Что делал</th>
-                <th>Тип</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table striped highlightOnHover withTableBorder>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th style={{ width: '80px' }}>С</Table.Th>
+                <Table.Th style={{ width: '80px' }}>До</Table.Th>
+                <Table.Th>Что делал</Table.Th>
+                <Table.Th style={{ width: '200px' }}>Тип</Table.Th>
+                <Table.Th style={{ width: '100px' }}>Действия</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
               {currentDayLogs.map((log, idx) => (
-                <tr key={idx}>
-                  <td>{dayjs(log.hour).format('HH:mm')}</td>
-                  <td>{log.endTime ? dayjs(log.endTime).format('HH:mm') : '-'}</td>
-                  <td>{log.activity}</td>
-                  <td>{log.activityType}</td>
-                </tr>
+                <Table.Tr key={idx}>
+                  <Table.Td>{dayjs(log.hour).format('HH:mm')}</Table.Td>
+                  <Table.Td>{log.endTime ? dayjs(log.endTime).format('HH:mm') : '-'}</Table.Td>
+                  <Table.Td style={{
+                    maxWidth: '400px',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}>
+                    {log.activity}
+                  </Table.Td>
+                  <Table.Td>{log.activityType}</Table.Td>
+                  <Table.Td>
+                    <Group gap="xs">
+                      <ActionIcon
+                        variant="subtle"
+                        color="blue"
+                        onClick={() => handleEdit(idx)}
+                      >
+                        <IconPencil size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => handleDelete(idx)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
               ))}
-            </tbody>
+            </Table.Tbody>
           </Table>
         </>
       )}
@@ -184,6 +266,46 @@ export default function Tracker() {
           Прошло времени: {formatTime(elapsedSeconds)}
         </div>
       )}
+
+      <Modal
+        opened={editModalOpened}
+        onClose={() => setEditModalOpened(false)}
+        title="Редактировать запись"
+        size="lg"
+      >
+        <Stack>
+          <Select
+            data={activityOptions}
+            value={editActivityType}
+            onChange={(val) => {
+              if (!val) return;
+              if (
+                val === 'работал' ||
+                val === 'общался с клиентами' ||
+                val === 'писал отклики'
+              ) {
+                setEditActivityType(val);
+              }
+            }}
+            label="Тип активности"
+          />
+          <Textarea
+            placeholder="Что делали в этой сессии?"
+            value={editActivity}
+            onChange={(e) => setEditActivity(e.currentTarget.value)}
+            minRows={3}
+            label="Описание"
+          />
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={() => setEditModalOpened(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Сохранить
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }
