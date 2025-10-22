@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { supabase } from '../../shared/api/supabase';
 import type { Client, ClientsState } from './types';
 
@@ -23,8 +23,9 @@ export const loadClients = createAsyncThunk<Client[], void, { rejectValue: strin
 
       if (error) throw error;
       return data || [];
-    } catch (err: any) {
-      return rejectWithValue(err.message || 'Ошибка загрузки клиентов');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка загрузки клиентов';
+      return rejectWithValue(message);
     }
   }
 );
@@ -44,8 +45,9 @@ export const addClient = createAsyncThunk<Client, Omit<Client, 'id' | 'created_a
 
       if (error) throw error;
       return data;
-    } catch (err: any) {
-      return rejectWithValue(err.message || 'Ошибка добавления клиента');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка добавления клиента';
+      return rejectWithValue(message);
     }
   }
 );
@@ -63,8 +65,9 @@ export const updateClient = createAsyncThunk<Client, { id: string; data: Partial
 
       if (error) throw error;
       return updated;
-    } catch (err: any) {
-      return rejectWithValue(err.message || 'Ошибка обновления клиента');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка обновления клиента';
+      return rejectWithValue(message);
     }
   }
 );
@@ -73,15 +76,12 @@ export const deleteClient = createAsyncThunk<string, string, { rejectValue: stri
   'clients/delete',
   async (id, { rejectWithValue }) => {
     try {
-      const { error } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('clients').delete().eq('id', id);
       if (error) throw error;
       return id;
-    } catch (err: any) {
-      return rejectWithValue(err.message || 'Ошибка удаления клиента');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка удаления клиента';
+      return rejectWithValue(message);
     }
   }
 );
@@ -92,7 +92,6 @@ const clientsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Load
       .addCase(loadClients.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -105,18 +104,13 @@ const clientsSlice = createSlice({
         state.loading = false;
         state.error = action.payload || 'Ошибка';
       })
-      // Add
       .addCase(addClient.fulfilled, (state, action) => {
         state.items.unshift(action.payload);
       })
-      // Update
       .addCase(updateClient.fulfilled, (state, action) => {
         const index = state.items.findIndex(c => c.id === action.payload.id);
-        if (index !== -1) {
-          state.items[index] = action.payload;
-        }
+        if (index !== -1) state.items[index] = action.payload;
       })
-      // Delete
       .addCase(deleteClient.fulfilled, (state, action) => {
         state.items = state.items.filter(c => c.id !== action.payload);
       });
