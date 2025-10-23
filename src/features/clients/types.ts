@@ -6,6 +6,7 @@ export interface Client {
   phone?: string;
   email?: string;
   description?: string;
+  income_category_id?: string;
   created_at: string;
   user_id: string;
 }

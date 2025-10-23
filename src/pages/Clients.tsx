@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../app/store';
 import { loadClients, addClient, updateClient, deleteClient } from '../features/clients/clientsSlice';
+import { loadCategories, addCategoryAsync } from '../features/categories/categoriesSlice';
+import { loadTransactions } from '../features/transactions/transactionsSlice';
 import type { Client } from '../features/clients/types';
 import {
   Button,
@@ -15,17 +17,25 @@ import {
   ActionIcon,
   Text,
   Loader,
+  Select,
+  Alert,
+  Radio,
+  Tooltip,
 } from '@mantine/core';
-import { IconPencil, IconTrash, IconBrandTelegram, IconBrandWhatsapp, IconPhone, IconMail } from '@tabler/icons-react';
+import { IconPencil, IconTrash, IconBrandTelegram, IconBrandWhatsapp, IconPhone, IconMail, IconAlertCircle } from '@tabler/icons-react';
 import PageContainer from '../shared/ui/PageContainer';
 import { showNotification } from '@mantine/notifications';
+import { formatRub } from '../shared/utils/currency';
 
 export default function Clients() {
   const dispatch = useDispatch<AppDispatch>();
   const { items: clients, loading } = useSelector((state: RootState) => state.clients);
+  const { items: categories } = useSelector((state: RootState) => state.categories);
+  const { items: transactions } = useSelector((state: RootState) => state.transactions);
 
   const [modalOpened, setModalOpened] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [createCategoryModalOpened, setCreateCategoryModalOpened] = useState(false);
 
   const [name, setName] = useState('');
   const [telegram, setTelegram] = useState('');
@@ -33,10 +43,49 @@ export default function Clients() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
+  const [incomeCategoryId, setIncomeCategoryId] = useState<string | null>(null);
+  const [showCategoryWarning, setShowCategoryWarning] = useState(false);
+
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('teal');
 
   useEffect(() => {
     dispatch(loadClients());
+    dispatch(loadCategories());
+    dispatch(loadTransactions());
   }, [dispatch]);
+
+  const incomeCategories = categories.filter(cat => cat.type === 'income');
+
+  // Функция подсчета статистики по клиенту
+  const getClientStats = useMemo(() => {
+    return (client: Client) => {
+      if (!client.income_category_id) {
+        return { totalIncome: 0, totalHours: 0, hourlyRate: 0 };
+      }
+
+      // Находим категорию клиента
+      const category = categories.find(cat => cat.id === client.income_category_id);
+      if (!category) {
+        return { totalIncome: 0, totalHours: 0, hourlyRate: 0 };
+      }
+
+      // Считаем общий доход по категории (транзакции с положительной суммой по категории)
+      const totalIncome = transactions
+        .filter(tx => tx.category === category.name && tx.amount > 0)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      // Считаем общие часы из транзакций, где есть поле hours
+      const totalHours = transactions
+        .filter(tx => tx.category === category.name && tx.hours)
+        .reduce((sum, tx) => sum + (tx.hours || 0), 0);
+
+      // Рассчитываем стоимость часа
+      const hourlyRate = totalHours > 0 ? totalIncome / totalHours : 0;
+
+      return { totalIncome, totalHours, hourlyRate, categoryName: category.name };
+    };
+  }, [transactions, categories]);
 
   const handleOpenAdd = () => {
     setEditingClient(null);
@@ -46,6 +95,8 @@ export default function Clients() {
     setPhone('');
     setEmail('');
     setDescription('');
+    setIncomeCategoryId(null);
+    setShowCategoryWarning(incomeCategories.length === 0);
     setModalOpened(true);
   };
 
@@ -57,7 +108,41 @@ export default function Clients() {
     setPhone(client.phone || '');
     setEmail(client.email || '');
     setDescription(client.description || '');
+    setIncomeCategoryId(client.income_category_id || null);
+    setShowCategoryWarning(false);
     setModalOpened(true);
+  };
+
+  const handleOpenCreateCategory = () => {
+    setModalOpened(false);
+    setNewCategoryName('');
+    setNewCategoryColor('teal');
+    setCreateCategoryModalOpened(true);
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      showNotification({ title: 'Ошибка', message: 'Введите название категории', color: 'red' });
+      return;
+    }
+
+    try {
+      await dispatch(addCategoryAsync({
+        name: newCategoryName,
+        type: 'income',
+        color: newCategoryColor,
+      })).unwrap();
+
+      await dispatch(loadCategories());
+
+      showNotification({ title: 'Успешно', message: 'Категория дохода создана', color: 'green' });
+      setCreateCategoryModalOpened(false);
+      setShowCategoryWarning(false);
+      setModalOpened(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Не удалось создать категорию';
+      showNotification({ title: 'Ошибка', message, color: 'red' });
+    }
   };
 
   const handleSave = async () => {
@@ -67,19 +152,30 @@ export default function Clients() {
     }
 
     try {
+      const clientData = {
+        name,
+        telegram,
+        whatsapp,
+        phone,
+        email,
+        description,
+        income_category_id: incomeCategoryId || undefined,
+      };
+
       if (editingClient) {
         await dispatch(updateClient({
           id: editingClient.id,
-          data: { name, telegram, whatsapp, phone, email, description },
+          data: clientData,
         })).unwrap();
         showNotification({ title: 'Успешно', message: 'Клиент обновлен', color: 'green' });
       } else {
-        await dispatch(addClient({ name, telegram, whatsapp, phone, email, description })).unwrap();
+        await dispatch(addClient(clientData)).unwrap();
         showNotification({ title: 'Успешно', message: 'Клиент добавлен', color: 'green' });
       }
       setModalOpened(false);
-    } catch (err: any) {
-      showNotification({ title: 'Ошибка', message: err || 'Что-то пошло не так', color: 'red' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Что-то пошло не так';
+      showNotification({ title: 'Ошибка', message, color: 'red' });
     }
   };
 
@@ -88,8 +184,9 @@ export default function Clients() {
       try {
         await dispatch(deleteClient(id)).unwrap();
         showNotification({ title: 'Успешно', message: 'Клиент удален', color: 'green' });
-      } catch (err: any) {
-        showNotification({ title: 'Ошибка', message: err || 'Не удалось удалить', color: 'red' });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Не удалось удалить';
+        showNotification({ title: 'Ошибка', message, color: 'red' });
       }
     }
   };
@@ -113,48 +210,114 @@ export default function Clients() {
         <Table striped highlightOnHover withTableBorder>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Имя/Название</Table.Th>
-              <Table.Th>Контакты</Table.Th>
-              <Table.Th>Описание</Table.Th>
-              <Table.Th style={{ width: '100px' }}>Действия</Table.Th>
+              <Table.Th style={{ width: '25%' }}>Имя/Название</Table.Th>
+              <Table.Th style={{ width: '15%' }}>Контакты</Table.Th>
+              <Table.Th style={{ width: '50%' }}>Описание</Table.Th>
+              <Table.Th style={{ width: '10%' }}>Действия</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {clients.map((client) => (
+            {clients.map((client) => {
+              const stats = getClientStats(client);
+              return (
               <Table.Tr key={client.id}>
                 <Table.Td>
-                  <Text fw={600}>{client.name}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Stack gap={4}>
-                    {client.telegram && (
-                      <Group gap={6}>
-                        <IconBrandTelegram size={16} />
-                        <Text size="sm">{client.telegram}</Text>
-                      </Group>
-                    )}
-                    {client.whatsapp && (
-                      <Group gap={6}>
-                        <IconBrandWhatsapp size={16} />
-                        <Text size="sm">{client.whatsapp}</Text>
-                      </Group>
-                    )}
-                    {client.phone && (
-                      <Group gap={6}>
-                        <IconPhone size={16} />
-                        <Text size="sm">{client.phone}</Text>
-                      </Group>
-                    )}
-                    {client.email && (
-                      <Group gap={6}>
-                        <IconMail size={16} />
-                        <Text size="sm">{client.email}</Text>
+                  <Stack gap="md">
+                    <Text fw={600} size="lg">{client.name}</Text>
+                    {client.income_category_id && stats.totalIncome > 0 && (
+                      <Group gap="md">
+                        <Stack gap={2}>
+                          <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                            Общая сумма
+                          </Text>
+                          <Text size="lg" fw={700} c="teal">
+                            {formatRub(stats.totalIncome)}
+                          </Text>
+                        </Stack>
+                        {stats.totalHours > 0 && (
+                          <Stack gap={2}>
+                            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                              Цена/час
+                            </Text>
+                            <Text size="lg" fw={700} c="blue">
+                              {formatRub(stats.hourlyRate)}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {stats.totalHours.toFixed(1)} часов
+                            </Text>
+                          </Stack>
+                        )}
                       </Group>
                     )}
                   </Stack>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm" lineClamp={2}>
+                  <Group gap="sm">
+                    {client.telegram && (
+                      <Tooltip label="Открыть Telegram">
+                        <ActionIcon
+                          component="a"
+                          href={`https://t.me/@${client.telegram.replace('@', '')}`}
+                          target="_blank"
+                          size="xl"
+                          variant="subtle"
+                          color="blue"
+                        >
+                          <IconBrandTelegram size={48} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                    {client.whatsapp && (
+                      <Tooltip label="Открыть WhatsApp">
+                        <ActionIcon
+                          component="a"
+                          href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          size="xl"
+                          variant="subtle"
+                          color="green"
+                        >
+                          <IconBrandWhatsapp size={48} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                    {client.phone && (
+                      <Tooltip label="Позвонить">
+                        <ActionIcon
+                          component="a"
+                          href={`tel:${client.phone}`}
+                          size="xl"
+                          variant="subtle"
+                          color="grape"
+                        >
+                          <IconPhone size={48} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                    {client.email && (
+                      <Tooltip label="Написать email">
+                        <ActionIcon
+                          component="a"
+                          href={`mailto:${client.email}`}
+                          size="xl"
+                          variant="subtle"
+                          color="red"
+                        >
+                          <IconMail size={48} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                  </Group>
+                </Table.Td>
+                <Table.Td>
+                  <Text
+                    size="sm"
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      maxWidth: '400px'
+                    }}
+                  >
                     {client.description || '—'}
                   </Text>
                 </Table.Td>
@@ -177,7 +340,8 @@ export default function Clients() {
                   </Group>
                 </Table.Td>
               </Table.Tr>
-            ))}
+              );
+            })}
           </Table.Tbody>
         </Table>
       )}
@@ -187,6 +351,14 @@ export default function Clients() {
         onClose={() => setModalOpened(false)}
         title={editingClient ? 'Редактировать клиента' : 'Добавить клиента'}
         size="lg"
+        centered
+        styles={{
+          inner: {
+            right: 0,
+            left: 0,
+            padding: '0 16px',
+          },
+        }}
       >
         <Stack>
           <TextInput
@@ -196,6 +368,29 @@ export default function Clients() {
             onChange={(e) => setName(e.currentTarget.value)}
             required
           />
+
+          {showCategoryWarning && (
+            <Alert icon={<IconAlertCircle size={16} />} title="Нет категорий доходов" color="orange">
+              <Text size="sm" mb="sm">
+                У вас нет категорий доходов. Создать категорию?
+              </Text>
+              <Button size="xs" onClick={handleOpenCreateCategory}>
+                Создать категорию
+              </Button>
+            </Alert>
+          )}
+
+          {incomeCategories.length > 0 && (
+            <Select
+              label="Категория дохода"
+              placeholder="Выберите категорию дохода"
+              data={incomeCategories.map(cat => ({ value: cat.id, label: cat.name }))}
+              value={incomeCategoryId}
+              onChange={(value) => setIncomeCategoryId(value)}
+              clearable
+            />
+          )}
+
           <TextInput
             label="Telegram"
             placeholder="@username"
@@ -237,6 +432,62 @@ export default function Clients() {
             </Button>
             <Button onClick={handleSave}>
               {editingClient ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={createCategoryModalOpened}
+        onClose={() => {
+          setCreateCategoryModalOpened(false);
+          setModalOpened(true);
+        }}
+        title="Создать категорию дохода"
+        size="md"
+        centered
+        styles={{
+          inner: {
+            right: 0,
+            left: 0,
+            padding: '0 16px',
+          },
+        }}
+      >
+        <Stack>
+          <TextInput
+            label="Название категории"
+            placeholder="Например: Фриланс, Зарплата"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.currentTarget.value)}
+            required
+          />
+          <Radio.Group
+            label="Цвет категории"
+            value={newCategoryColor}
+            onChange={setNewCategoryColor}
+          >
+            <Group mt="xs">
+              <Radio value="teal" label="Чайный" />
+              <Radio value="blue" label="Синий" />
+              <Radio value="green" label="Зеленый" />
+              <Radio value="orange" label="Оранжевый" />
+              <Radio value="purple" label="Пурпурный" />
+              <Radio value="red" label="Красный" />
+            </Group>
+          </Radio.Group>
+          <Group justify="flex-end" mt="md">
+            <Button
+              variant="default"
+              onClick={() => {
+                setCreateCategoryModalOpened(false);
+                setModalOpened(true);
+              }}
+            >
+              Отмена
+            </Button>
+            <Button onClick={handleCreateCategory}>
+              Создать
             </Button>
           </Group>
         </Stack>
