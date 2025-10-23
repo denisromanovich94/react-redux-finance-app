@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
+import Clients from './pages/Clients';
 import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { supabase } from './shared/api/supabase';
@@ -98,6 +99,12 @@ export default function App() {
             to="/analytics"
             active={location.pathname.startsWith('/analytics')}
           />
+          <NavLink
+            label="Клиенты"
+            component={Link}
+            to="/clients"
+            active={location.pathname.startsWith('/clients')}
+          />
 <NavLink
             label="Тайм трекер Beta"
             component={Link}
@@ -136,6 +143,7 @@ export default function App() {
           <Route path="/" element={<RequireAuth><Overview /></RequireAuth>} />
           <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+          <Route path="/clients" element={<RequireAuth><Clients /></RequireAuth>} />
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
