@@ -51,12 +51,21 @@ export default function Tracker() {
   }, []);
 
 
+  const allSessions = useSelector((state: RootState) => state.timeTracker.allSessions);
+
   useEffect(() => {
     dispatch(fetchSessions())
       .unwrap()
       .then(data => setSessionLogs(data.flatMap(s => s.logs ?? [])))
       .catch(err => console.error(err));
   }, [dispatch]);
+
+  // Обновляем sessionLogs когда приходят новые сессии из Redux
+  useEffect(() => {
+    if (allSessions.length > 0) {
+      setSessionLogs(allSessions.flatMap(s => s.logs ?? []));
+    }
+  }, [allSessions]);
 
 
   useEffect(() => {

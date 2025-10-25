@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../app/store';
 import { Paper, Button, Textarea, Stack, Text, Group, Select } from '@mantine/core';
-import { stopSession } from '../../timetracker/timeTrackerSlice';
+import { stopSession, setLog } from '../../timetracker/timeTrackerSlice';
+import { saveSession } from '../../timetracker/timeTrackerThunks';
+import { showNotification } from '@mantine/notifications';
 import dayjs from 'dayjs';
 import type { HourLog } from '../../timetracker/types';
 
@@ -59,24 +61,36 @@ export default function FloatingTracker() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     if (!tracker.startTime) return;
 
     const endTime = dayjs().toISOString();
     const startHour = dayjs(tracker.startTime).toISOString();
 
-    // Сохраняем лог в localStorage
-    const storedLogs: HourLog[] = JSON.parse(localStorage.getItem('sessionLogs') || '[]');
-    storedLogs.push({
+    // Создаем лог
+    const log: HourLog = {
       hour: startHour,
       endTime,
       activity,
       activityType,
-    });
-    localStorage.setItem('sessionLogs', JSON.stringify(storedLogs));
+    };
 
-    // Останавливаем трекер
+    // Сохраняем лог в Redux state ПЕРЕД остановкой
+    dispatch(setLog(log));
+
+    // Останавливаем трекер (обновляет endTime)
     dispatch(stopSession());
+
+    // Сохраняем сессию на сервер
+    try {
+      await dispatch(saveSession()).unwrap();
+    } catch (err) {
+      showNotification({
+        title: 'Ошибка',
+        message: String(err || 'Не удалось сохранить сессию'),
+        color: 'red',
+      });
+    }
 
     // Очищаем поля и localStorage
     setActivity('');

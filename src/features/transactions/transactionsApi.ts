@@ -4,9 +4,9 @@ import { getUserId } from '../../shared/api/auth';
 export type Transaction = {
   id: string;
   user_id: string;
-  date: string;  
+  date: string;
   category: string;
-  amount: number;   
+  amount: number;  // Всегда в рублях
   hours?: number;
   comment: string | null;
   created_at?: string;

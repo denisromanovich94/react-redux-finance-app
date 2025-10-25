@@ -23,6 +23,9 @@ import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
 import { selectCategoryUsageCount } from '../features/transactions/selectors';
 import { notifications } from '@mantine/notifications';
+import { loadExchangeRates } from '../features/currency/currencySlice';
+import { convertCurrency } from '../features/currency/utils';
+import type { CurrencyCode } from '../features/currency/types';
 
 const colorOptions = [
     { value: 'teal', label: 'Чайный' },
@@ -55,9 +58,13 @@ export default function Transactions() {
   const [newCatColor, setNewCatColor] = useState('teal');
   const [displayCount, setDisplayCount] = useState(15);
   const observerTarget = useRef<HTMLTableRowElement>(null);
+
+  const exchangeRates = useAppSelector((s) => s.currency.rates);
+
   useEffect(() => {
     dispatch(loadTransactions());
     dispatch(loadCategories());
+    dispatch(loadExchangeRates());
   }, [dispatch]);
   const usageCount = useAppSelector(selectCategoryUsageCount) as Record<string, number>;
   const [txType, setTxType] = useState<'income' | 'expense'>('expense');
@@ -122,7 +129,10 @@ useEffect(() => {
         loadMore();
       }
     },
-    { threshold: 0.1 }
+    {
+      threshold: 0.1,
+      rootMargin: '200px'
+    }
   );
 
   const currentTarget = observerTarget.current;
@@ -217,7 +227,7 @@ const handleCategoryChange = (val: string | null) => {
     return;
   }
 
-  const amt = Number(form.values.amount || 0);
+  const amt = Number(form.values.amount ?? 0);
 
   if (cat.type === 'income' && amt < 0) {
     form.setFieldValue('amount', Math.abs(amt));
@@ -240,17 +250,26 @@ const handleSubmitTransaction = form.onSubmit((values) => {
   }
 
   const cat = catByName.get(values.category);
-  let adjustedAmount = values.amount || 0;
+  const adjustedAmount = values.amount ?? 0;
 
+  // Конвертируем в рубли ПЕРЕД сохранением в БД
+  let amountInRubles = convertCurrency(
+    Math.abs(adjustedAmount),
+    values.currency,
+    'RUB',
+    exchangeRates
+  );
+
+  // Применяем знак в зависимости от типа
   if (cat?.type === 'expense') {
-    adjustedAmount = -Math.abs(adjustedAmount);
+    amountInRubles = -Math.abs(amountInRubles);
   } else {
-    adjustedAmount = Math.abs(adjustedAmount);
+    amountInRubles = Math.abs(amountInRubles);
   }
 
   const payload = toTxPayload({
     ...values,
-    amount: adjustedAmount,
+    amount: amountInRubles,  // Сохраняем в рублях
   });
 
   if (editingId) {
@@ -354,18 +373,29 @@ const expenseCategories = useMemo(
 
     <NumberInput
       label="Сумма"
-      placeholder="Введите сумму (отрицательное — расход)"
+      placeholder="Введите сумму"
       {...form.getInputProps('amount')}
       mb="sm"
     />
 
+    <Select
+      label="Валюта"
+      data={[
+        { value: 'RUB', label: '₽ Рубль' },
+        { value: 'USD', label: '$ Доллар' },
+        { value: 'EUR', label: '€ Евро' },
+      ]}
+      value={form.values.currency}
+      onChange={(val) => form.setFieldValue('currency', (val as CurrencyCode) || 'RUB')}
+      mb="sm"
+    />
 
     {form.values.category && catByName.get(form.values.category)?.type === 'income' && (
       <NumberInput
         label="Часы работы"
         placeholder="Например: 8"
-        value={form.values.hours || 0}
-        onChange={(val) => form.setFieldValue('hours', Number(val) || 0)}
+        value={form.values.hours ?? 0}
+        onChange={(val) => form.setFieldValue('hours', val === '' ? 0 : Number(val))}
         mb="sm"
         min={0}
       />

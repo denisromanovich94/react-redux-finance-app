@@ -1,6 +1,7 @@
 import { useForm } from '@mantine/form';
 import dayjs from 'dayjs';
 import type { Transaction } from './transactionsApi';
+import type { CurrencyCode } from '../currency/types';
 
 export type TxFormValues = {
   date: Date | null;
@@ -8,6 +9,7 @@ export type TxFormValues = {
   amount: number;
   hours: number;
   comment: string;
+  currency: CurrencyCode;
 };
 
 export function toTxPayload(values: TxFormValues): Omit<Transaction, 'id' | 'user_id' | 'created_at'> {
@@ -18,7 +20,7 @@ export function toTxPayload(values: TxFormValues): Omit<Transaction, 'id' | 'use
   const payload: Omit<Transaction, 'id' | 'user_id' | 'created_at'> = {
     date: dayjs(values.date).format('DD.MM.YYYY'),
     category: values.category,
-    amount: Number(values.amount),
+    amount: Number(values.amount),  // Всегда в рублях (конвертация происходит в компоненте)
     comment: values.comment.trim() ? values.comment.trim() : null,
   };
 
@@ -37,6 +39,7 @@ export function useTransactionForm() {
       amount: 0,
       hours: 0,
       comment: '',
+      currency: 'RUB',
     },
     validate: {
       date: (v) => (v ? null : 'Выберите дату'),
@@ -49,9 +52,10 @@ export function useTransactionForm() {
     form.setValues({
       date: dayjs(tx.date, 'DD.MM.YYYY').toDate(),
       category: tx.category,
-      amount: tx.amount,
+      amount: tx.amount,  // Сумма всегда в рублях из БД
       hours: tx.hours ?? 0,
       comment: tx.comment ?? '',
+      currency: 'RUB',  // По умолчанию рубли при редактировании
     });
   }
 
