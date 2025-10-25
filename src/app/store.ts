@@ -4,6 +4,7 @@ import transactionsReducer from '../features/transactions/transactionsSlice';
 import { categoriesReducer } from '../features/categories/categoriesSlice';
 import timeTrackerReducer from '../features/timetracker/timeTrackerSlice';
 import clientsReducer from '../features/clients/clientsSlice';
+import currencyReducer from '../features/currency/currencySlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     categories: categoriesReducer,
     timeTracker: timeTrackerReducer,
     clients: clientsReducer,
+    currency: currencyReducer,
   },
 });
 
