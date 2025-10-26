@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack } from '@mantine/core';
-import { IconChevronLeft, IconChevronRight, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
+import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { PieChart } from '@mantine/charts';
 import {
   ResponsiveContainer,
@@ -415,34 +415,205 @@ const hourlyRateForCategory = useMemo(() => {
             {categoryComparison.length === 0 ? (
               <Text c="dimmed">Нет данных для сравнения</Text>
             ) : (
-              <Stack gap="sm">
-                {categoryComparison.map((comp, idx) => (
-                  <Group key={idx} justify="space-between" wrap="nowrap">
-                    <Group gap="xs" style={{ flex: 1 }}>
-                      <Badge color={comp.type === 'income' ? 'teal' : 'red'} variant="dot">
-                        {comp.category}
-                      </Badge>
-                      <Text size="sm" c="dimmed">
-                        {formatCurrencyAmount(comp.previous, displayCurrency)} → {formatCurrencyAmount(comp.current, displayCurrency)}
-                      </Text>
-                    </Group>
-                    <Badge
-                      size="lg"
-                      color={comp.isGood ? 'green' : 'red'}
-                      variant="light"
-                      leftSection={
-                        comp.change > 0 ? (
-                          <IconTrendingUp size={14} />
-                        ) : comp.change < 0 ? (
-                          <IconTrendingDown size={14} />
-                        ) : null
-                      }
-                    >
-                      {comp.change > 0 ? '+' : ''}{comp.changePercent.toFixed(1)}%
-                    </Badge>
-                  </Group>
-                ))}
-              </Stack>
+              <Grid gutter="lg">
+                {/* ТОП-5 по изменениям */}
+                <Grid.Col span={{ base: 12, lg: 6 }}>
+                  <Title order={4} mb="md" c="dimmed" size="h5">
+                    ТОП-5 по изменениям
+                  </Title>
+                  <Stack gap="lg">
+                    {categoryComparison.slice(0, 5).map((comp, idx) => {
+                      const maxValue = Math.max(comp.current, comp.previous);
+                      const currentPercent = maxValue > 0 ? (comp.current / maxValue) * 100 : 0;
+                      const previousPercent = maxValue > 0 ? (comp.previous / maxValue) * 100 : 0;
+
+                      return (
+                        <div key={idx}>
+                          <Group justify="space-between" mb={4}>
+                            <Group gap="xs">
+                              <Badge color={comp.type === 'income' ? 'teal' : 'red'} variant="dot" size="sm">
+                                {comp.category}
+                              </Badge>
+                            </Group>
+                            <Badge
+                              color={comp.isGood ? 'green' : 'red'}
+                              variant="light"
+                              leftSection={
+                                comp.change > 0 ? (
+                                  <IconArrowUp size={12} />
+                                ) : comp.change < 0 ? (
+                                  <IconArrowDown size={12} />
+                                ) : null
+                              }
+                            >
+                              {comp.change > 0 ? '+' : ''}{comp.changePercent.toFixed(1)}%
+                            </Badge>
+                          </Group>
+
+                          <Stack gap={4}>
+                            <Group justify="space-between">
+                              <Text size="xs" c="dimmed">Предыдущий месяц:</Text>
+                              <Text size="xs" fw={500}>{formatCurrencyAmount(comp.previous, displayCurrency)}</Text>
+                            </Group>
+                            <Progress
+                              value={previousPercent}
+                              color="gray"
+                              size="sm"
+                              radius="xl"
+                            />
+
+                            <Group justify="space-between" mt={4}>
+                              <Text size="xs" c="dimmed">Текущий месяц:</Text>
+                              <Text size="xs" fw={500}>{formatCurrencyAmount(comp.current, displayCurrency)}</Text>
+                            </Group>
+                            <Progress
+                              value={currentPercent}
+                              color={comp.isGood ? 'green' : 'red'}
+                              size="sm"
+                              radius="xl"
+                            />
+                          </Stack>
+                          {idx < 4 && <Divider my="xs" />}
+                        </div>
+                      );
+                    })}
+                  </Stack>
+                </Grid.Col>
+
+                {/* Общая статистика по типам */}
+                <Grid.Col span={{ base: 12, lg: 6 }}>
+                  <Title order={4} mb="md" c="dimmed" size="h5">
+                    Общая статистика
+                  </Title>
+                  <Stack gap="xl">
+                    {/* Доходы */}
+                    {(() => {
+                      const incomeComps = categoryComparison.filter(c => c.type === 'income');
+                      const totalIncomeCurrent = incomeComps.reduce((sum, c) => sum + c.current, 0);
+                      const totalIncomePrevious = incomeComps.reduce((sum, c) => sum + c.previous, 0);
+                      const incomeChange = totalIncomeCurrent - totalIncomePrevious;
+                      const incomeChangePercent = totalIncomePrevious > 0
+                        ? (incomeChange / totalIncomePrevious) * 100
+                        : (totalIncomeCurrent > 0 ? 100 : 0);
+
+                      return (
+                        <Card withBorder p="md" radius="md" style={{ backgroundColor: isDark ? '#1a1b1e' : '#f8f9fa' }}>
+                          <Group justify="space-between" mb="md">
+                            <Group gap="xs">
+                              <Text fw={600} size="lg">Доходы</Text>
+                              <Badge color="teal" variant="light">
+                                {incomeComps.length} {incomeComps.length === 1 ? 'категория' : 'категорий'}
+                              </Badge>
+                            </Group>
+                            <Badge
+                              size="lg"
+                              color={incomeChange >= 0 ? 'green' : 'red'}
+                              variant="filled"
+                            >
+                              {incomeChange > 0 ? '+' : ''}{incomeChangePercent.toFixed(1)}%
+                            </Badge>
+                          </Group>
+                          <Center>
+                            <RingProgress
+                              size={180}
+                              thickness={16}
+                              sections={[
+                                {
+                                  value: Math.min(100, Math.abs(incomeChangePercent)),
+                                  color: incomeChange >= 0 ? 'green' : 'red'
+                                },
+                              ]}
+                              label={
+                                <Center>
+                                  <Stack gap={0} align="center">
+                                    <Text size="xs" c="dimmed">Изменение</Text>
+                                    <Text fw={700} size="xl">
+                                      {incomeChange > 0 ? '+' : ''}{incomeChangePercent.toFixed(0)}%
+                                    </Text>
+                                  </Stack>
+                                </Center>
+                              }
+                            />
+                          </Center>
+                          <Stack gap="xs" mt="md">
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Предыдущий:</Text>
+                              <Text size="sm" fw={500}>{formatCurrencyAmount(totalIncomePrevious, displayCurrency)}</Text>
+                            </Group>
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Текущий:</Text>
+                              <Text size="sm" fw={600} c="teal">{formatCurrencyAmount(totalIncomeCurrent, displayCurrency)}</Text>
+                            </Group>
+                          </Stack>
+                        </Card>
+                      );
+                    })()}
+
+                    {/* Расходы */}
+                    {(() => {
+                      const expenseComps = categoryComparison.filter(c => c.type === 'expense');
+                      const totalExpenseCurrent = expenseComps.reduce((sum, c) => sum + c.current, 0);
+                      const totalExpensePrevious = expenseComps.reduce((sum, c) => sum + c.previous, 0);
+                      const expenseChange = totalExpenseCurrent - totalExpensePrevious;
+                      const expenseChangePercent = totalExpensePrevious > 0
+                        ? (expenseChange / totalExpensePrevious) * 100
+                        : (totalExpenseCurrent > 0 ? 100 : 0);
+
+                      return (
+                        <Card withBorder p="md" radius="md" style={{ backgroundColor: isDark ? '#1a1b1e' : '#f8f9fa' }}>
+                          <Group justify="space-between" mb="md">
+                            <Group gap="xs">
+                              <Text fw={600} size="lg">Расходы</Text>
+                              <Badge color="red" variant="light">
+                                {expenseComps.length} {expenseComps.length === 1 ? 'категория' : 'категорий'}
+                              </Badge>
+                            </Group>
+                            <Badge
+                              size="lg"
+                              color={expenseChange <= 0 ? 'green' : 'red'}
+                              variant="filled"
+                            >
+                              {expenseChange > 0 ? '+' : ''}{expenseChangePercent.toFixed(1)}%
+                            </Badge>
+                          </Group>
+                          <Center>
+                            <RingProgress
+                              size={180}
+                              thickness={16}
+                              sections={[
+                                {
+                                  value: Math.min(100, Math.abs(expenseChangePercent)),
+                                  color: expenseChange <= 0 ? 'green' : 'red'
+                                },
+                              ]}
+                              label={
+                                <Center>
+                                  <Stack gap={0} align="center">
+                                    <Text size="xs" c="dimmed">Изменение</Text>
+                                    <Text fw={700} size="xl">
+                                      {expenseChange > 0 ? '+' : ''}{expenseChangePercent.toFixed(0)}%
+                                    </Text>
+                                  </Stack>
+                                </Center>
+                              }
+                            />
+                          </Center>
+                          <Stack gap="xs" mt="md">
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Предыдущий:</Text>
+                              <Text size="sm" fw={500}>{formatCurrencyAmount(totalExpensePrevious, displayCurrency)}</Text>
+                            </Group>
+                            <Group justify="space-between">
+                              <Text size="sm" c="dimmed">Текущий:</Text>
+                              <Text size="sm" fw={600} c="red">{formatCurrencyAmount(totalExpenseCurrent, displayCurrency)}</Text>
+                            </Group>
+                          </Stack>
+                        </Card>
+                      );
+                    })()}
+                  </Stack>
+                </Grid.Col>
+              </Grid>
             )}
           </Card>
         </Grid.Col>
