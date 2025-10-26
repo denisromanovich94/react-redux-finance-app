@@ -17,7 +17,7 @@ import {
 } from '../features/transactions/transactionsSlice';
 import { loadCategories, addCategoryAsync, updateCategoryAsync, deleteCategoryAsync } from '../features/categories/categoriesSlice';
 
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons-react';
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
@@ -57,7 +57,6 @@ export default function Transactions() {
   const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
   const [newCatColor, setNewCatColor] = useState('teal');
   const [displayCount, setDisplayCount] = useState(15);
-  const observerTarget = useRef<HTMLTableRowElement>(null);
 
   const exchangeRates = useAppSelector((s) => s.currency.rates);
 
@@ -116,36 +115,9 @@ useEffect(() => {
   }
 }, [typeFilter, filterCategory, filteredCategoryNames]);
 
-const loadMore = useCallback(() => {
-  if (hasMore) {
-    setDisplayCount(prev => prev + 15);
-  }
-}, [hasMore]);
-
-useEffect(() => {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMore();
-      }
-    },
-    {
-      threshold: 0.1,
-      rootMargin: '200px'
-    }
-  );
-
-  const currentTarget = observerTarget.current;
-  if (currentTarget) {
-    observer.observe(currentTarget);
-  }
-
-  return () => {
-    if (currentTarget) {
-      observer.unobserve(currentTarget);
-    }
-  };
-}, [hasMore, loadMore]);
+const loadMore = () => {
+  setDisplayCount(prev => prev + 15);
+};
   const onEdit = (id: string) => {
   const tx = transactions.find((t) => t.id === id);
 if (!tx) return;
@@ -642,11 +614,8 @@ const expenseCategories = useMemo(
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {visibleTransactions.map((r, index) => (
-                <Table.Tr
-                  key={r.id}
-                  ref={index === visibleTransactions.length - 1 ? observerTarget : null}
-                >
+              {visibleTransactions.map((r) => (
+                <Table.Tr key={r.id}>
                   <Table.Td>{r.date}</Table.Td>
                   <Table.Td>
                     <Group gap="xs">
@@ -690,10 +659,18 @@ const expenseCategories = useMemo(
         )}
 
         {!transactionsLoading && !transactionsError && visibleTransactions.length > 0 && (
-          <Text c="dimmed" size="sm" ta="center" mt="md">
-            Показано {visibleTransactions.length} из {allVisibleTransactions.length} транзакций
-            {hasMore && ' (прокрутите для загрузки еще)'}
-          </Text>
+          <>
+            <Text c="dimmed" size="sm" ta="center" mt="md">
+              Показано {visibleTransactions.length} из {allVisibleTransactions.length} транзакций
+            </Text>
+            {hasMore && (
+              <Center mt="md">
+                <Button variant="light" onClick={loadMore}>
+                  Показать еще
+                </Button>
+              </Center>
+            )}
+          </>
         )}
       </Card>
     </PageContainer>
