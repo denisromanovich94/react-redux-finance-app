@@ -21,8 +21,11 @@ import {
   Alert,
   Radio,
   Tooltip,
+  Card,
+  Divider,
 } from '@mantine/core';
 import { IconPencil, IconTrash, IconBrandTelegram, IconBrandWhatsapp, IconPhone, IconMail, IconAlertCircle } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import PageContainer from '../shared/ui/PageContainer';
 import { showNotification } from '@mantine/notifications';
 import { formatRub } from '../shared/utils/currency';
@@ -32,6 +35,7 @@ export default function Clients() {
   const { items: clients, loading } = useSelector((state: RootState) => state.clients);
   const { items: categories } = useSelector((state: RootState) => state.categories);
   const { items: transactions } = useSelector((state: RootState) => state.transactions);
+  const isSmall = useMediaQuery('(max-width: 48em)');
 
   const [modalOpened, setModalOpened] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -194,8 +198,10 @@ export default function Clients() {
   return (
     <PageContainer>
       <Group justify="space-between" mb="md">
-        <Title order={2}>Клиенты</Title>
-        <Button onClick={handleOpenAdd}>Добавить клиента</Button>
+        <Title order={isSmall ? 3 : 2}>Клиенты</Title>
+        <Button onClick={handleOpenAdd} fullWidth={isSmall} size={isSmall ? 'sm' : 'md'}>
+          Добавить клиента
+        </Button>
       </Group>
 
       {loading ? (
@@ -207,143 +213,282 @@ export default function Clients() {
           Нет клиентов. Добавьте первого клиента!
         </Text>
       ) : (
-        <Table striped highlightOnHover withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: '25%' }}>Имя/Название</Table.Th>
-              <Table.Th style={{ width: '15%' }}>Контакты</Table.Th>
-              <Table.Th style={{ width: '50%' }}>Описание</Table.Th>
-              <Table.Th style={{ width: '10%' }}>Действия</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {clients.map((client) => {
-              const stats = getClientStats(client);
-              return (
-              <Table.Tr key={client.id}>
-                <Table.Td>
-                  <Stack gap="md">
-                    <Text fw={600} size="lg">{client.name}</Text>
-                    {client.income_category_id && stats.totalIncome > 0 && (
-                      <Group gap="md">
-                        <Stack gap={2}>
-                          <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-                            Общая сумма
-                          </Text>
-                          <Text size="lg" fw={700} c="teal">
-                            {formatRub(stats.totalIncome)}
-                          </Text>
-                        </Stack>
-                        {stats.totalHours > 0 && (
-                          <Stack gap={2}>
-                            <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
-                              Цена/час
-                            </Text>
-                            <Text size="lg" fw={700} c="blue">
-                              {formatRub(stats.hourlyRate)}
-                            </Text>
-                            <Text size="xs" c="dimmed">
-                              {stats.totalHours.toFixed(1)} часов
-                            </Text>
-                          </Stack>
+        <>
+          {/* Desktop - Table */}
+          {!isSmall && (
+            <Table striped highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ width: '25%' }}>Имя/Название</Table.Th>
+                  <Table.Th style={{ width: '15%' }}>Контакты</Table.Th>
+                  <Table.Th style={{ width: '50%' }}>Описание</Table.Th>
+                  <Table.Th style={{ width: '10%' }}>Действия</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {clients.map((client) => {
+                  const stats = getClientStats(client);
+                  return (
+                  <Table.Tr key={client.id}>
+                    <Table.Td>
+                      <Stack gap="md">
+                        <Text fw={600} size="lg">{client.name}</Text>
+                        {client.income_category_id && stats.totalIncome > 0 && (
+                          <Group gap="md">
+                            <Stack gap={2}>
+                              <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                                Общая сумма
+                              </Text>
+                              <Text size="lg" fw={700} c="teal">
+                                {formatRub(stats.totalIncome)}
+                              </Text>
+                            </Stack>
+                            {stats.totalHours > 0 && (
+                              <Stack gap={2}>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                                  Цена/час
+                                </Text>
+                                <Text size="lg" fw={700} c="blue">
+                                  {formatRub(stats.hourlyRate)}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {stats.totalHours.toFixed(1)} часов
+                                </Text>
+                              </Stack>
+                            )}
+                          </Group>
+                        )}
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="sm">
+                        {client.telegram && (
+                          <Tooltip label="Открыть Telegram">
+                            <ActionIcon
+                              component="a"
+                              href={`https://t.me/@${client.telegram.replace('@', '')}`}
+                              target="_blank"
+                              size="xl"
+                              variant="subtle"
+                              color="blue"
+                            >
+                              <IconBrandTelegram size={48} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                        {client.whatsapp && (
+                          <Tooltip label="Открыть WhatsApp">
+                            <ActionIcon
+                              component="a"
+                              href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              size="xl"
+                              variant="subtle"
+                              color="green"
+                            >
+                              <IconBrandWhatsapp size={48} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                        {client.phone && (
+                          <Tooltip label="Позвонить">
+                            <ActionIcon
+                              component="a"
+                              href={`tel:${client.phone}`}
+                              size="xl"
+                              variant="subtle"
+                              color="grape"
+                            >
+                              <IconPhone size={48} />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                        {client.email && (
+                          <Tooltip label="Написать email">
+                            <ActionIcon
+                              component="a"
+                              href={`mailto:${client.email}`}
+                              size="xl"
+                              variant="subtle"
+                              color="red"
+                            >
+                              <IconMail size={48} />
+                            </ActionIcon>
+                          </Tooltip>
                         )}
                       </Group>
-                    )}
-                  </Stack>
-                </Table.Td>
-                <Table.Td>
-                  <Group gap="sm">
-                    {client.telegram && (
-                      <Tooltip label="Открыть Telegram">
+                    </Table.Td>
+                    <Table.Td>
+                      <Text
+                        size="sm"
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          maxWidth: '400px'
+                        }}
+                      >
+                        {client.description || '—'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
                         <ActionIcon
-                          component="a"
-                          href={`https://t.me/@${client.telegram.replace('@', '')}`}
-                          target="_blank"
-                          size="xl"
                           variant="subtle"
                           color="blue"
+                          onClick={() => handleOpenEdit(client)}
                         >
-                          <IconBrandTelegram size={48} />
+                          <IconPencil size={16} />
                         </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {client.whatsapp && (
-                      <Tooltip label="Открыть WhatsApp">
                         <ActionIcon
-                          component="a"
-                          href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}`}
-                          target="_blank"
-                          size="xl"
-                          variant="subtle"
-                          color="green"
-                        >
-                          <IconBrandWhatsapp size={48} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {client.phone && (
-                      <Tooltip label="Позвонить">
-                        <ActionIcon
-                          component="a"
-                          href={`tel:${client.phone}`}
-                          size="xl"
-                          variant="subtle"
-                          color="grape"
-                        >
-                          <IconPhone size={48} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                    {client.email && (
-                      <Tooltip label="Написать email">
-                        <ActionIcon
-                          component="a"
-                          href={`mailto:${client.email}`}
-                          size="xl"
                           variant="subtle"
                           color="red"
+                          onClick={() => handleDelete(client.id)}
                         >
-                          <IconMail size={48} />
+                          <IconTrash size={16} />
                         </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </Group>
-                </Table.Td>
-                <Table.Td>
-                  <Text
-                    size="sm"
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      maxWidth: '400px'
-                    }}
-                  >
-                    {client.description || '—'}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Group gap="xs">
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      onClick={() => handleOpenEdit(client)}
-                    >
-                      <IconPencil size={16} />
-                    </ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      onClick={() => handleDelete(client.id)}
-                    >
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Group>
-                </Table.Td>
-              </Table.Tr>
-              );
-            })}
-          </Table.Tbody>
-        </Table>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          )}
+
+          {/* Mobile - Cards */}
+          {isSmall && (
+            <Stack gap="md">
+              {clients.map((client) => {
+                const stats = getClientStats(client);
+                return (
+                  <Card key={client.id} p="md" withBorder radius="md">
+                    <Stack gap="sm">
+                      {/* Header: Name and Actions */}
+                      <Group justify="space-between" align="flex-start">
+                        <Text fw={600} size="lg" style={{ flex: 1 }}>
+                          {client.name}
+                        </Text>
+                        <Group gap="xs">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            size="lg"
+                            onClick={() => handleOpenEdit(client)}
+                          >
+                            <IconPencil size={18} />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            size="lg"
+                            onClick={() => handleDelete(client.id)}
+                          >
+                            <IconTrash size={18} />
+                          </ActionIcon>
+                        </Group>
+                      </Group>
+
+                      {/* Stats */}
+                      {client.income_category_id && stats.totalIncome > 0 && (
+                        <>
+                          <Divider />
+                          <Group gap="lg" grow>
+                            <Stack gap={2}>
+                              <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                                Общая сумма
+                              </Text>
+                              <Text size="lg" fw={700} c="teal">
+                                {formatRub(stats.totalIncome)}
+                              </Text>
+                            </Stack>
+                            {stats.totalHours > 0 && (
+                              <Stack gap={2}>
+                                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                                  Цена/час
+                                </Text>
+                                <Text size="lg" fw={700} c="blue">
+                                  {formatRub(stats.hourlyRate)}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                  {stats.totalHours.toFixed(1)} часов
+                                </Text>
+                              </Stack>
+                            )}
+                          </Group>
+                        </>
+                      )}
+
+                      {/* Contacts */}
+                      {(client.telegram || client.whatsapp || client.phone || client.email) && (
+                        <>
+                          <Divider />
+                          <Group gap="sm" justify="flex-start">
+                            {client.telegram && (
+                              <ActionIcon
+                                component="a"
+                                href={`https://t.me/@${client.telegram.replace('@', '')}`}
+                                target="_blank"
+                                size="xl"
+                                variant="subtle"
+                                color="blue"
+                              >
+                                <IconBrandTelegram size={32} />
+                              </ActionIcon>
+                            )}
+                            {client.whatsapp && (
+                              <ActionIcon
+                                component="a"
+                                href={`https://wa.me/${client.whatsapp.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                size="xl"
+                                variant="subtle"
+                                color="green"
+                              >
+                                <IconBrandWhatsapp size={32} />
+                              </ActionIcon>
+                            )}
+                            {client.phone && (
+                              <ActionIcon
+                                component="a"
+                                href={`tel:${client.phone}`}
+                                size="xl"
+                                variant="subtle"
+                                color="grape"
+                              >
+                                <IconPhone size={32} />
+                              </ActionIcon>
+                            )}
+                            {client.email && (
+                              <ActionIcon
+                                component="a"
+                                href={`mailto:${client.email}`}
+                                size="xl"
+                                variant="subtle"
+                                color="red"
+                              >
+                                <IconMail size={32} />
+                              </ActionIcon>
+                            )}
+                          </Group>
+                        </>
+                      )}
+
+                      {/* Description */}
+                      {client.description && (
+                        <>
+                          <Divider />
+                          <Text size="sm" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {client.description}
+                          </Text>
+                        </>
+                      )}
+                    </Stack>
+                  </Card>
+                );
+              })}
+            </Stack>
+          )}
+        </>
       )}
 
       <Modal
@@ -351,12 +496,11 @@ export default function Clients() {
         onClose={() => setModalOpened(false)}
         title={editingClient ? 'Редактировать клиента' : 'Добавить клиента'}
         size="lg"
-        centered
+        fullScreen={isSmall}
         styles={{
           inner: {
             right: 0,
             left: 0,
-            padding: '0 16px',
           },
         }}
       >
@@ -445,12 +589,11 @@ export default function Clients() {
         }}
         title="Создать категорию дохода"
         size="md"
-        centered
+        fullScreen={isSmall}
         styles={{
           inner: {
             right: 0,
             left: 0,
-            padding: '0 16px',
           },
         }}
       >

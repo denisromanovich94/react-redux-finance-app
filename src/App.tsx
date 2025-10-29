@@ -15,11 +15,14 @@ import { IconSun, IconMoon } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
+import { useAppDispatch } from './hooks';
+import { loadExchangeRates } from './features/currency/currencySlice';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [authed, setAuthed] = useState(false);
 
   function ThemeToggle() {
@@ -39,6 +42,19 @@ export default function App() {
     </ActionIcon>
   );
 }
+  // Загружаем курсы валют при монтировании и проверяем каждый час
+  useEffect(() => {
+    // Загружаем курсы при старте
+    dispatch(loadExchangeRates());
+
+    // Проверяем каждый час, не пора ли обновить курсы
+    const interval = setInterval(() => {
+      dispatch(loadExchangeRates());
+    }, 60 * 60 * 1000); // каждый час
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -85,6 +101,7 @@ export default function App() {
             component={Link}
             to="/"
             active={location.pathname === '/'}
+            onClick={toggle}
           />
 
           <NavLink
@@ -92,30 +109,35 @@ export default function App() {
             component={Link}
             to="/transactions"
             active={location.pathname.startsWith('/transactions')}
+            onClick={toggle}
           />
           <NavLink
             label="Аналитика"
             component={Link}
             to="/analytics"
             active={location.pathname.startsWith('/analytics')}
+            onClick={toggle}
           />
           <NavLink
             label="Клиенты"
             component={Link}
             to="/clients"
             active={location.pathname.startsWith('/clients')}
+            onClick={toggle}
           />
 <NavLink
             label="Тайм трекер Beta"
             component={Link}
             to="/tracker"
             active={location.pathname.startsWith('/tracker')}
+            onClick={toggle}
           />
 <NavLink
   label="Календарь Beta"
   component={Link}
   to="/calendar"
   active={location.pathname.startsWith('/calendar')}
+  onClick={toggle}
 />
           {!authed ? (
             <NavLink
