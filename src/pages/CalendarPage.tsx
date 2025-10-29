@@ -5,6 +5,7 @@ import { fetchSessions } from '../features/timetracker/timeTrackerThunks';
 import { Calendar } from '@mantine/dates';
 import { Modal, Text, Title, Stack, Badge, Group, Divider, Card, Timeline } from '@mantine/core';
 import { IconClock, IconActivity } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import dayjs from 'dayjs';
 
 type TimeLog = { hour?: string; endTime?: string; activity: string; activityType?: string };
@@ -19,6 +20,7 @@ type Session = {
 export default function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
   const sessions = useSelector((state: RootState) => state.timeTracker.allSessions) as Session[];
+  const isSmall = useMediaQuery('(max-width: 48em)');
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,34 +39,35 @@ export default function CalendarPage() {
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between" align="center">
+      <Group justify="space-between" align="center" wrap="wrap">
         <div>
-          <Title order={2}>Календарь работы</Title>
+          <Title order={isSmall ? 3 : 2}>Календарь работы</Title>
           <Text c="dimmed" size="sm" mt={4}>
             Нажмите на дату, чтобы посмотреть детали сессий
           </Text>
         </div>
-        <Badge size="xl" variant="light" color="teal">
+        <Badge size={isSmall ? 'lg' : 'xl'} variant="light" color="teal">
           Рабочих дней: {totalDaysWithSessions}
         </Badge>
       </Group>
 
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card shadow="sm" padding={isSmall ? 'sm' : 'lg'} radius="md" withBorder>
         <Calendar
-          size="xl"
+          size={isSmall ? 'md' : 'xl'}
           styles={{
-            month: { fontSize: '1.5rem' },
-            weekday: { fontSize: '1.2rem', fontWeight: 600 },
+            month: { fontSize: isSmall ? '1rem' : '1.5rem' },
+            weekday: { fontSize: isSmall ? '0.8rem' : '1.2rem', fontWeight: 600 },
             day: {
-              width: 64,
-              height: 64,
-              margin: 2,
+              width: isSmall ? 40 : 64,
+              height: isSmall ? 40 : 64,
+              margin: isSmall ? 1 : 2,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               borderRadius: 8,
               position: 'relative',
+              fontSize: isSmall ? '0.85rem' : '1rem',
             },
           }}
           renderDay={(dayStr: string) => {
@@ -111,9 +114,9 @@ export default function CalendarPage() {
                     <span
                       style={{
                         position: 'absolute',
-                        bottom: 4,
-                        width: 8,
-                        height: 8,
+                        bottom: isSmall ? 2 : 4,
+                        width: isSmall ? 6 : 8,
+                        height: isSmall ? 6 : 8,
                         borderRadius: '50%',
                         backgroundColor: 'teal',
                       }}
@@ -125,8 +128,10 @@ export default function CalendarPage() {
                         color="teal"
                         style={{
                           position: 'absolute',
-                          top: 2,
-                          right: 2,
+                          top: isSmall ? 0 : 2,
+                          right: isSmall ? 0 : 2,
+                          fontSize: isSmall ? '0.6rem' : '0.7rem',
+                          padding: isSmall ? '2px 4px' : undefined,
                         }}
                       >
                         {daySessionCount}
@@ -144,11 +149,11 @@ export default function CalendarPage() {
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         size="xl"
-        centered
+        fullScreen={isSmall}
         title={
           <Group>
-            <IconClock size={24} />
-            <Title order={3}>
+            <IconClock size={isSmall ? 20 : 24} />
+            <Title order={isSmall ? 4 : 3}>
               {selectedDate ? dayjs(selectedDate).format('DD MMMM YYYY') : 'Сессии'}
             </Title>
           </Group>
@@ -157,7 +162,6 @@ export default function CalendarPage() {
           inner: {
             right: 0,
             left: 0,
-            padding: '0 16px',
           },
         }}
       >
@@ -174,15 +178,15 @@ export default function CalendarPage() {
               const durationText = hours > 0 ? `${hours} ч ${minutes} мин` : `${minutes} мин`;
 
               return (
-                <Card key={s.id} shadow="sm" padding="lg" radius="md" withBorder>
-                  <Group justify="space-between" mb="md">
+                <Card key={s.id} shadow="sm" padding={isSmall ? 'sm' : 'lg'} radius="md" withBorder>
+                  <Group justify="space-between" mb="md" wrap="wrap">
                     <Group gap="xs">
-                      <IconClock size={18} />
-                      <Text fw={600} size="lg">
+                      <IconClock size={isSmall ? 16 : 18} />
+                      <Text fw={600} size={isSmall ? 'md' : 'lg'}>
                         {dayjs(s.start_time).format('HH:mm')} – {s.end_time ? dayjs(s.end_time).format('HH:mm') : 'не завершено'}
                       </Text>
                     </Group>
-                    <Badge size="lg" variant="light" color="teal">
+                    <Badge size={isSmall ? 'md' : 'lg'} variant="light" color="teal">
                       {durationText}
                     </Badge>
                   </Group>
