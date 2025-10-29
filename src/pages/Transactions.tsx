@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,}
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,Box,Paper,}
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -23,7 +23,6 @@ import { IconMaximize, IconMinimize, IconPencil, IconTrash } from '@tabler/icons
 import { selectTransactionCategoryNames, makeSelectVisibleTransactions } from '../features/transactions/selectors';
 import { selectCategoryUsageCount } from '../features/transactions/selectors';
 import { notifications } from '@mantine/notifications';
-import { loadExchangeRates } from '../features/currency/currencySlice';
 import { convertCurrency } from '../features/currency/utils';
 import type { CurrencyCode } from '../features/currency/types';
 
@@ -63,7 +62,6 @@ export default function Transactions() {
   useEffect(() => {
     dispatch(loadTransactions());
     dispatch(loadCategories());
-    dispatch(loadExchangeRates());
   }, [dispatch]);
   const usageCount = useAppSelector(selectCategoryUsageCount) as Record<string, number>;
   const [txType, setTxType] = useState<'income' | 'expense'>('expense');
@@ -299,9 +297,9 @@ const expenseCategories = useMemo(
 
   return (
     <PageContainer maxWidth={1200}>
-      <Card radius="lg" p="lg" withBorder>
-        <Title order={2} mb="md">Транзакции</Title>
-<Button onClick={handleAddTransaction} mb="md">
+      <Card radius="lg" p={isSmall ? 'sm' : 'lg'} withBorder>
+        <Title order={isSmall ? 3 : 2} mb="md">Транзакции</Title>
+<Button onClick={handleAddTransaction} mb="md" fullWidth={isSmall}>
   Добавить транзакцию
 </Button>
 
@@ -311,7 +309,6 @@ const expenseCategories = useMemo(
   styles={{ inner: { right: 0, left: 0 } }}
   title={editingId ? 'Редактировать транзакцию' : 'Добавить транзакцию'}
 >
-  
   <form onSubmit={handleSubmitTransaction}>
     <DateInput
       label="Дата"
@@ -382,7 +379,7 @@ const expenseCategories = useMemo(
       mb="sm"
     />
 
-    <Button type="submit" mt="md">
+    <Button type="submit" mt="md" fullWidth={isSmall}>
       Сохранить
     </Button>
   </form>
@@ -539,7 +536,7 @@ const expenseCategories = useMemo(
     </Grid.Col>
   </Grid>
 </Modal>
-        <Button variant="light" onClick={() => setCatOpened(true)} mb="md">
+        <Button variant="light" onClick={() => setCatOpened(true)} mb="md" fullWidth={isSmall}>
           Добавить категорию
         </Button>
 
@@ -562,17 +559,17 @@ const expenseCategories = useMemo(
           value={typeFilter}
           onChange={(v) => setTypeFilter(v as 'all' | 'income' | 'expense')}
           mb="md"
+          fullWidth
         />
 
         <Group gap="xs" mb="md" justify="center">
-          <Button
+          <ActionIcon
             variant="default"
-            size="xs"
-            leftSection={<IconChevronLeft size={16} />}
+            size={isSmall ? 'lg' : 'md'}
             onClick={handlePrevMonth}
           >
-            Пред.
-          </Button>
+            <IconChevronLeft size={isSmall ? 20 : 16} />
+          </ActionIcon>
           <Button
             variant={isCurrentMonth ? 'filled' : 'default'}
             size="xs"
@@ -580,14 +577,13 @@ const expenseCategories = useMemo(
           >
             {selectedDate.format('MMMM YYYY')}
           </Button>
-          <Button
+          <ActionIcon
             variant="default"
-            size="xs"
-            rightSection={<IconChevronRight size={16} />}
+            size={isSmall ? 'lg' : 'md'}
             onClick={handleNextMonth}
           >
-            След.
-          </Button>
+            <IconChevronRight size={isSmall ? 20 : 16} />
+          </ActionIcon>
         </Group>
 
         {transactionsLoading && (
@@ -603,59 +599,121 @@ const expenseCategories = useMemo(
         )}
 
         {!transactionsLoading && !transactionsError && (
-          <Table striped highlightOnHover withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Дата</Table.Th>
-                <Table.Th>Категория</Table.Th>
-                <Table.Th ta="right">Сумма</Table.Th>
-                <Table.Th>Комментарий</Table.Th>
-                <Table.Th ta="right">Действия</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {visibleTransactions.map((r) => (
-                <Table.Tr key={r.id}>
-                  <Table.Td>{r.date}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <div
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          backgroundColor: catByName.get(r.category)?.color || 'gray',
-                        }}
-                      />
-                      <span>{r.category}</span>
+          <>
+            {/* Desktop view - таблица */}
+            {!isSmall && (
+              <Table striped highlightOnHover withTableBorder>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Дата</Table.Th>
+                    <Table.Th>Категория</Table.Th>
+                    <Table.Th ta="right">Сумма</Table.Th>
+                    <Table.Th>Комментарий</Table.Th>
+                    <Table.Th ta="right">Действия</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {visibleTransactions.map((r) => (
+                    <Table.Tr key={r.id}>
+                      <Table.Td>{r.date}</Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <div
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              backgroundColor: catByName.get(r.category)?.color || 'gray',
+                            }}
+                          />
+                          <span>{r.category}</span>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td ta="right">
+                        <Text c={r.amount < 0 ? 'red' : 'green'}>
+                          {formatRub(r.amount)}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td style={{ maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.comment ?? '—'}
+                      </Table.Td>
+                      <Table.Td ta="right">
+                        <Group gap="xs" justify="flex-end">
+                          <Tooltip label="Редактировать">
+                            <ActionIcon variant="subtle" onClick={() => onEdit(r.id)}>
+                              <IconPencil size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label="Удалить">
+                            <ActionIcon variant="subtle" color="red" onClick={() => onDelete(r.id)}>
+                              <IconTrash size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            )}
+
+            {/* Mobile view - карточки */}
+            {isSmall && (
+              <Stack gap="sm">
+                {visibleTransactions.map((r) => (
+                  <Paper key={r.id} p="md" withBorder radius="md">
+                    <Group justify="space-between" mb="xs">
+                      <Group gap="xs">
+                        <Box
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            backgroundColor: catByName.get(r.category)?.color || 'gray',
+                          }}
+                        />
+                        <Text fw={500}>{r.category}</Text>
+                      </Group>
+                      <Text size="sm" c="dimmed">{r.date}</Text>
                     </Group>
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <Text c={r.amount < 0 ? 'red' : 'green'}>
+
+                    <Text
+                      size="xl"
+                      fw={700}
+                      c={r.amount < 0 ? 'red' : 'green'}
+                      mb="xs"
+                    >
                       {formatRub(r.amount)}
                     </Text>
-                  </Table.Td>
-                  <Table.Td style={{ maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {r.comment ?? '—'}
-      </Table.Td>
-                  <Table.Td ta="right">
+
+                    {r.comment && (
+                      <Text size="sm" c="dimmed" mb="sm" lineClamp={2}>
+                        {r.comment}
+                      </Text>
+                    )}
+
                     <Group gap="xs" justify="flex-end">
-                      <Tooltip label="Редактировать">
-                        <ActionIcon variant="subtle" onClick={() => onEdit(r.id)}>
-                          <IconPencil size={18} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Удалить">
-                        <ActionIcon variant="subtle" color="red" onClick={() => onDelete(r.id)}>
-                          <IconTrash size={18} />
-                        </ActionIcon>
-                      </Tooltip>
+                      <ActionIcon
+                        variant="light"
+                        size="lg"
+                        onClick={() => onEdit(r.id)}
+                      >
+                        <IconPencil size={18} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="light"
+                        color="red"
+                        size="lg"
+                        onClick={() => onDelete(r.id)}
+                      >
+                        <IconTrash size={18} />
+                      </ActionIcon>
                     </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </>
         )}
 
         {!transactionsLoading && !transactionsError && visibleTransactions.length > 0 && (

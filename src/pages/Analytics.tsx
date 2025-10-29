@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center } from '@mantine/core';
+import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center, ActionIcon, Paper, Box } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import { PieChart } from '@mantine/charts';
 import {
   ResponsiveContainer,
@@ -17,7 +18,6 @@ import PageContainer from '../shared/ui/PageContainer';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
-import { loadExchangeRates } from '../features/currency/currencySlice';
 import { convertCurrency, formatCurrencyAmount } from '../features/currency/utils';
 import CurrencySwitcher from '../features/currency/ui/CurrencySwitcher';
 import dayjs from '../shared/dayjs';
@@ -35,6 +35,7 @@ export default function Analytics() {
   const dispatch = useAppDispatch();
   const { colorScheme } = useMantineColorScheme();
   const isDark = colorScheme === 'dark';
+  const isSmall = useMediaQuery('(max-width: 48em)');
   const loading = useAppSelector((s) => s.transactions.loading);
   const itemsCount = useAppSelector((s) => s.transactions.items.length);
 
@@ -47,10 +48,6 @@ export default function Analytics() {
       dispatch(loadTransactions());
     }
   }, [dispatch, loading, itemsCount]);
-
-  useEffect(() => {
-    dispatch(loadExchangeRates());
-  }, [dispatch]);
 
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
   const [selectedYear, setSelectedYear] = useState(() => dayjs().year());
@@ -268,20 +265,19 @@ const hourlyRateForCategory = useMemo(() => {
 
   return (
     <PageContainer>
-      <Card radius="lg" p="lg" withBorder mb="lg">
+      <Card radius="lg" p={isSmall ? 'sm' : 'lg'} withBorder mb="lg">
         <Group justify="space-between" align="center" wrap="wrap">
-          <Title order={2}>Аналитика</Title>
+          <Title order={isSmall ? 3 : 2}>Аналитика</Title>
           <Group gap="md">
             <CurrencySwitcher />
             <Group gap="xs">
-              <Button
+              <ActionIcon
                 variant="default"
-                size="xs"
-                leftSection={<IconChevronLeft size={16} />}
+                size={isSmall ? 'lg' : 'md'}
                 onClick={handlePrevMonth}
               >
-                Пред.
-              </Button>
+                <IconChevronLeft size={isSmall ? 20 : 16} />
+              </ActionIcon>
               <Button
                 variant={isCurrentMonth ? 'filled' : 'default'}
                 size="xs"
@@ -289,127 +285,210 @@ const hourlyRateForCategory = useMemo(() => {
               >
                 {selectedDate.format('MMMM YYYY')}
               </Button>
-              <Button
+              <ActionIcon
                 variant="default"
-                size="xs"
-                rightSection={<IconChevronRight size={16} />}
+                size={isSmall ? 'lg' : 'md'}
                 onClick={handleNextMonth}
               >
-                След.
-              </Button>
+                <IconChevronRight size={isSmall ? 20 : 16} />
+              </ActionIcon>
             </Group>
           </Group>
         </Group>
       </Card>
 
-      <Grid gutter="lg">
+      <Grid gutter={isSmall ? 'sm' : 'lg'}>
         <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
-          <Card radius="lg" p="lg" withBorder style={{ minHeight: '450px' }}>
-            <Title order={3} mb="md">
-              Расходы по категориям
-            </Title>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
-              <PieChart
-                data={convertedExpenseData}
-                withLabels
-                withTooltip
-                size={320}
-                labelsType="percent"
-                pieProps={{
-                  onClick: (data: { name?: string }) => {
-                    if (data?.name) openCatModal(data.name, 'expense');
-                  },
-                }}
-              />
-            </div>
-          </Card>
-        </Grid.Col>
-
-        <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
-          <Card radius="lg" p="lg" withBorder style={{ minHeight: '450px' }}>
-            <Title order={3} mb="md">
+          <Card radius="lg" p={isSmall ? 'sm' : 'lg'} withBorder style={{ minHeight: isSmall ? 'auto' : '450px' }}>
+            <Title order={isSmall ? 4 : 3} mb="md">
               Доходы по категориям
             </Title>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
-              <PieChart
-                data={convertedIncomeData}
-                withLabels
-                withTooltip
-                size={320}
-                labelsType="percent"
-                pieProps={{
-                  onClick: (data: { name?: string }) => {
-                    if (data?.name) openCatModal(data.name, 'income');
-                  },
-                }}
-              />
-            </div>
+
+            {/* Desktop - Pie Chart */}
+            {!isSmall && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
+                <PieChart
+                  data={convertedIncomeData}
+                  withLabels
+                  withTooltip
+                  size={320}
+                  labelsType="percent"
+                  pieProps={{
+                    onClick: (data: { name?: string }) => {
+                      if (data?.name) openCatModal(data.name, 'income');
+                    },
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Mobile - Clickable List */}
+            {isSmall && (
+              <Stack gap="xs">
+                {convertedIncomeData.length === 0 ? (
+                  <Text c="dimmed" size="sm">Нет доходов за выбранный период</Text>
+                ) : (
+                  convertedIncomeData.map((item) => (
+                    <Paper
+                      key={item.name}
+                      p="sm"
+                      withBorder
+                      radius="md"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => openCatModal(item.name, 'income')}
+                    >
+                      <Group justify="space-between" wrap="nowrap">
+                        <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                          <Box
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              backgroundColor: item.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Text size="sm" fw={500} truncate>{item.name}</Text>
+                        </Group>
+                        <Text size="sm" fw={600} c="green" style={{ flexShrink: 0 }}>
+                          {formatCurrencyAmount(item.value, displayCurrency)}
+                        </Text>
+                      </Group>
+                    </Paper>
+                  ))
+                )}
+              </Stack>
+            )}
           </Card>
         </Grid.Col>
 
-        <Grid.Col span={12}>
-          <Card radius="lg" p="lg" withBorder>
-            <Group justify="space-between" mb="md">
-              <Title order={3}>Доходы vs Расходы за {selectedYear} год</Title>
-              <Group gap="xs">
-                <Button
-                  variant="default"
-                  size="xs"
-                  leftSection={<IconChevronLeft size={16} />}
-                  onClick={handlePrevYear}
-                >
-                  {selectedYear - 1}
-                </Button>
-                <Button
-                  variant={selectedYear === dayjs().year() ? 'filled' : 'default'}
-                  size="xs"
-                  onClick={handleCurrentYear}
-                >
-                  {selectedYear}
-                </Button>
-                <Button
-                  variant="default"
-                  size="xs"
-                  rightSection={<IconChevronRight size={16} />}
-                  onClick={handleNextYear}
-                >
-                  {selectedYear + 1}
-                </Button>
+        <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
+          <Card radius="lg" p={isSmall ? 'sm' : 'lg'} withBorder style={{ minHeight: isSmall ? 'auto' : '450px' }}>
+            <Title order={isSmall ? 4 : 3} mb="md">
+              Расходы по категориям
+            </Title>
+
+            {/* Desktop - Pie Chart */}
+            {!isSmall && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
+                <PieChart
+                  data={convertedExpenseData}
+                  withLabels
+                  withTooltip
+                  size={320}
+                  labelsType="percent"
+                  pieProps={{
+                    onClick: (data: { name?: string }) => {
+                      if (data?.name) openCatModal(data.name, 'expense');
+                    },
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Mobile - Clickable List */}
+            {isSmall && (
+              <Stack gap="xs">
+                {convertedExpenseData.length === 0 ? (
+                  <Text c="dimmed" size="sm">Нет расходов за выбранный период</Text>
+                ) : (
+                  convertedExpenseData.map((item) => (
+                    <Paper
+                      key={item.name}
+                      p="sm"
+                      withBorder
+                      radius="md"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => openCatModal(item.name, 'expense')}
+                    >
+                      <Group justify="space-between" wrap="nowrap">
+                        <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                          <Box
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              backgroundColor: item.color,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Text size="sm" fw={500} truncate>{item.name}</Text>
+                        </Group>
+                        <Text size="sm" fw={600} c="red" style={{ flexShrink: 0 }}>
+                          {formatCurrencyAmount(item.value, displayCurrency)}
+                        </Text>
+                      </Group>
+                    </Paper>
+                  ))
+                )}
+              </Stack>
+            )}
+          </Card>
+        </Grid.Col>
+
+        {!isSmall && (
+          <Grid.Col span={12}>
+            <Card radius="lg" p="lg" withBorder>
+              <Group justify="space-between" mb="md" wrap="wrap">
+                <Title order={3}>Доходы vs Расходы за {selectedYear} год</Title>
+                <Group gap="xs">
+                  <ActionIcon
+                    variant="default"
+                    size="md"
+                    onClick={handlePrevYear}
+                  >
+                    <IconChevronLeft size={16} />
+                  </ActionIcon>
+                  <Button
+                    variant={selectedYear === dayjs().year() ? 'filled' : 'default'}
+                    size="xs"
+                    onClick={handleCurrentYear}
+                  >
+                    {selectedYear}
+                  </Button>
+                  <ActionIcon
+                    variant="default"
+                    size="md"
+                    onClick={handleNextYear}
+                  >
+                    <IconChevronRight size={16} />
+                  </ActionIcon>
+                </Group>
               </Group>
-            </Group>
-            <ResponsiveContainer width="100%" height={350}>
-              <ComposedChart data={trendWithBalance}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#ccc'} />
-                <XAxis dataKey="month" stroke={isDark ? '#aaa' : '#666'} />
-                <YAxis stroke={isDark ? '#aaa' : '#666'} />
-                <Tooltip
-                  formatter={(value: number) => formatCurrencyAmount(value, displayCurrency)}
-                  contentStyle={{
-                    backgroundColor: isDark ? '#25262b' : '#fff',
-                    border: `1px solid ${isDark ? '#373A40' : '#e0e0e0'}`,
-                    borderRadius: '4px',
-                    color: isDark ? '#C1C2C5' : '#000',
-                  }}
-                  labelStyle={{
-                    color: isDark ? '#C1C2C5' : '#000',
-                  }}
-                />
-                <Legend
-                  wrapperStyle={{
-                    color: isDark ? '#C1C2C5' : '#000',
-                  }}
-                />
-                <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
-                <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
-                <Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </Card>
-        </Grid.Col>
+              <ResponsiveContainer width="100%" height={350}>
+                <ComposedChart data={trendWithBalance}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#ccc'} />
+                  <XAxis dataKey="month" stroke={isDark ? '#aaa' : '#666'} />
+                  <YAxis stroke={isDark ? '#aaa' : '#666'} />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrencyAmount(value, displayCurrency)}
+                    contentStyle={{
+                      backgroundColor: isDark ? '#25262b' : '#fff',
+                      border: `1px solid ${isDark ? '#373A40' : '#e0e0e0'}`,
+                      borderRadius: '4px',
+                      color: isDark ? '#C1C2C5' : '#000',
+                    }}
+                    labelStyle={{
+                      color: isDark ? '#C1C2C5' : '#000',
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      color: isDark ? '#C1C2C5' : '#000',
+                    }}
+                  />
+                  <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
+                  <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
+                  <Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Card>
+          </Grid.Col>
+        )}
 
         <Grid.Col span={12}>
-          <Card radius="lg" p="lg" withBorder>
-            <Title order={3} mb="md">
+          <Card radius="lg" p={isSmall ? 'sm' : 'lg'} withBorder>
+            <Title order={isSmall ? 4 : 3} mb="md">
               Сравнение категорий: {selectedDate.format('MMMM')} vs {selectedDate.subtract(1, 'month').format('MMMM')}
             </Title>
             {categoryComparison.length === 0 ? (
@@ -624,6 +703,7 @@ const hourlyRateForCategory = useMemo(() => {
         opened={catModal.open}
         onClose={closeCatModal}
         size="lg"
+        fullScreen={isSmall}
         title={
           catModal.category ? `Транзакции: ${catModal.category}` : 'Транзакции'
         }
@@ -638,37 +718,66 @@ const hourlyRateForCategory = useMemo(() => {
         Стоимость работы в час: {hourlyRateForCategory.toFixed(2)}
       </Text>
     )}
-    <Table striped highlightOnHover withTableBorder>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Дата</Table.Th>
-          <Table.Th ta="right">Сумма</Table.Th>
-          <Table.Th>Комментарий</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
+
+    {/* Desktop view - таблица */}
+    {!isSmall && (
+      <Table striped highlightOnHover withTableBorder>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Дата</Table.Th>
+            <Table.Th ta="right">Сумма</Table.Th>
+            <Table.Th>Комментарий</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {filteredTx.map((t) => (
+            <Table.Tr key={t.id}>
+              <Table.Td>{t.date}</Table.Td>
+              <Table.Td ta="right">
+                <Text c={t.amount < 0 ? 'red' : 'green'}>
+                  {t.amount.toLocaleString('ru-RU')}
+                </Text>
+              </Table.Td>
+              <Table.Td
+                style={{
+                  maxWidth: 420,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t.comment ?? '—'}
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    )}
+
+    {/* Mobile view - карточки */}
+    {isSmall && (
+      <Stack gap="sm">
         {filteredTx.map((t) => (
-          <Table.Tr key={t.id}>
-            <Table.Td>{t.date}</Table.Td>
-            <Table.Td ta="right">
-              <Text c={t.amount < 0 ? 'red' : 'green'}>
+          <Paper key={t.id} p="md" withBorder radius="md">
+            <Group justify="space-between" mb="xs">
+              <Text size="sm" c="dimmed">{t.date}</Text>
+              <Text
+                size="xl"
+                fw={700}
+                c={t.amount < 0 ? 'red' : 'green'}
+              >
                 {t.amount.toLocaleString('ru-RU')}
               </Text>
-            </Table.Td>
-            <Table.Td
-              style={{
-                maxWidth: 420,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {t.comment ?? '—'}
-            </Table.Td>
-          </Table.Tr>
+            </Group>
+            {t.comment && (
+              <Text size="sm" c="dimmed" lineClamp={2}>
+                {t.comment}
+              </Text>
+            )}
+          </Paper>
         ))}
-      </Table.Tbody>
-    </Table>
+      </Stack>
+    )}
   </>
 )}
 

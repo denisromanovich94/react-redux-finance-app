@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Grid, Title, Text, Group, Button } from '@mantine/core';
+import { Grid, Title, Text, Group, Button, ActionIcon } from '@mantine/core';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import StatCard from '../shared/ui/StatCard';
 import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney, IconChevronLeft, IconChevronRight, IconClock, IconCurrencyDollar, IconChartLine, IconClockHour4 } from '@tabler/icons-react';
+import { useMediaQuery } from '@mantine/hooks';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
-import { loadExchangeRates } from '../features/currency/currencySlice';
 import { convertCurrency, formatCurrencyAmount } from '../features/currency/utils';
 import CurrencySwitcher from '../features/currency/ui/CurrencySwitcher';
 import ExchangeRatesCard from '../features/currency/ui/ExchangeRatesCard';
@@ -14,6 +14,7 @@ import { makeSelectMonthlyHours } from '../features/transactions/selectors';
 
 export default function Overview() {
   const dispatch = useAppDispatch();
+  const isSmall = useMediaQuery('(max-width: 48em)');
 
   const loading = useAppSelector((s) => s.transactions.loading);
   const error = useAppSelector((s) => s.transactions.error);
@@ -31,11 +32,6 @@ export default function Overview() {
       dispatch(loadTransactions());
     }
   }, [dispatch, loading, itemsCount]);
-
-  // Загружаем курсы валют при монтировании
-  useEffect(() => {
-    dispatch(loadExchangeRates());
-  }, [dispatch]);
 
   // Конвертируем общий баланс в выбранную валюту (все транзакции в рублях)
   const convertedTotalBalance = useMemo(() => {
@@ -165,14 +161,13 @@ export default function Overview() {
         <Group gap="md">
           <CurrencySwitcher />
           <Group gap="xs">
-            <Button
+            <ActionIcon
               variant="default"
-              size="xs"
-              leftSection={<IconChevronLeft size={16} />}
+              size={isSmall ? 'lg' : 'md'}
               onClick={handlePrevMonth}
             >
-              Пред.
-            </Button>
+              <IconChevronLeft size={isSmall ? 20 : 16} />
+            </ActionIcon>
             <Button
               variant={isCurrentMonth ? 'filled' : 'default'}
               size="xs"
@@ -180,14 +175,13 @@ export default function Overview() {
             >
               {selectedDate.format('MMMM YYYY')}
             </Button>
-            <Button
+            <ActionIcon
               variant="default"
-              size="xs"
-              rightSection={<IconChevronRight size={16} />}
+              size={isSmall ? 'lg' : 'md'}
               onClick={handleNextMonth}
             >
-              След.
-            </Button>
+              <IconChevronRight size={isSmall ? 20 : 16} />
+            </ActionIcon>
           </Group>
         </Group>
       </Group>
