@@ -36,30 +36,6 @@ export async function fetchExchangeRates(): Promise<CurrencyData> {
 }
 
 /**
- * Получить следующее время обновления (сегодня или завтра в 9:00 МСК)
- */
-function getNextUpdateTime(): Date {
-  const now = new Date();
-
-  // Получаем текущее время в МСК (UTC+3)
-  const mskOffset = 3 * 60; // МСК = UTC+3
-  const localOffset = now.getTimezoneOffset(); // смещение локального времени от UTC в минутах (отрицательное для восточных часовых поясов)
-  const mskTime = new Date(now.getTime() + (mskOffset + localOffset) * 60 * 1000);
-
-  // Устанавливаем время 9:00 МСК для сегодня
-  const nextUpdate = new Date(mskTime);
-  nextUpdate.setHours(UPDATE_HOUR_MSK, 0, 0, 0);
-
-  // Если 9:00 МСК уже прошло, берем завтрашний день
-  if (mskTime >= nextUpdate) {
-    nextUpdate.setDate(nextUpdate.getDate() + 1);
-  }
-
-  // Конвертируем обратно в локальное время
-  return new Date(nextUpdate.getTime() - (mskOffset + localOffset) * 60 * 1000);
-}
-
-/**
  * Проверить, нужно ли обновить курсы
  */
 function shouldUpdateRates(): boolean {
