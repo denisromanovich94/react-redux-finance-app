@@ -21,6 +21,7 @@
     "@reduxjs/toolkit": "^2.8.2",
     "@supabase/supabase-js": "^2.56.0",
     "@tabler/icons-react": "^3.34.1",
+    "@twa-dev/sdk": "^8.0.2",
     "axios": "^1.11.0",
     "dayjs": "^1.11.13",
     "react": "^19.1.1",

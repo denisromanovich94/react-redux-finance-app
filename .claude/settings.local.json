@@ -8,7 +8,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(where:*)",
+      "Bash(choco install:*)",
+      "Bash(lt:*)",
+      "Bash(ngrok http:*)",
+      "Bash(ssh:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
