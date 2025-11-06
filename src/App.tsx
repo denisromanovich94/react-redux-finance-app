@@ -7,6 +7,7 @@ import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
 import Clients from './pages/Clients';
 import { Auth } from './pages/Auth';
+import { LinkTelegram } from './pages/LinkTelegram';
 import RequireAuth from './shared/auth/RequireAuth';
 import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';
@@ -147,11 +148,20 @@ export default function App() {
               active={location.pathname.startsWith('/auth')}
             />
           ) : (
-            <Group justify="flex-start" p="sm">
-              <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
-                Выйти
-              </Button>
-            </Group>
+            <>
+              <NavLink
+                label="Telegram"
+                component={Link}
+                to="/link-telegram"
+                active={location.pathname.startsWith('/link-telegram')}
+                onClick={toggle}
+              />
+              <Group justify="flex-start" p="sm">
+                <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
+                  Выйти
+                </Button>
+              </Group>
+            </>
           )}
         </ScrollArea>
       </AppShell.Navbar>
@@ -168,6 +178,7 @@ export default function App() {
           <Route path="/clients" element={<RequireAuth><Clients /></RequireAuth>} />
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
+<Route path="/link-telegram" element={<RequireAuth><LinkTelegram /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

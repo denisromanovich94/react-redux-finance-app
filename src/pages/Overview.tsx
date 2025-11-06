@@ -193,7 +193,7 @@ export default function Overview() {
           <StatCard
             label="Баланс (месяц)"
             value={formatCurrencyAmount(displayMonthTotals.balanceM, displayCurrency)}
-            color="indigo"
+            color={displayMonthTotals.balanceM < 0 ? "red" : "indigo"}
             icon={<IconWallet size={18} />}
           />
         </Grid.Col>

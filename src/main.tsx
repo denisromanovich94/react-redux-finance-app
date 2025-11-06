@@ -6,6 +6,7 @@ import { MantineProvider, ColorSchemeScript, localStorageColorSchemeManager } fr
 import { Notifications } from '@mantine/notifications';
 import { store } from './app/store';
 import App from './App';
+import { TelegramThemeProvider } from './shared/telegram/TelegramThemeProvider';
 import './index.css';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
@@ -30,10 +31,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
       <ColorSchemeScript defaultColorScheme="auto" />
       <MantineProvider defaultColorScheme="auto" colorSchemeManager={colorSchemeManager}>
-        <Notifications />
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <TelegramThemeProvider>
+          <Notifications />
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </TelegramThemeProvider>
       </MantineProvider>
     </Provider>
   </React.StrictMode>
