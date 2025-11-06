@@ -16,7 +16,8 @@
       "Bash(lt:*)",
       "Bash(ngrok http:*)",
       "Bash(ssh:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

@@ -108,9 +108,7 @@ export async function getTelegramLink() {
  * Если нет - создается новый аккаунт с временным email
  */
 export async function signInWithTelegram(
-  telegramUser: TelegramUser,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  initData?: string
+  telegramUser: TelegramUser
 ) {
   // ВАЖНО: В production нужно валидировать initData на сервере!
   // Это защитит от подделки данных пользователя

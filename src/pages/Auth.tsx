@@ -35,9 +35,8 @@ export function Auth() {
         photo_url: user.photo_url,
       };
 
-      const initData = `auth_date=${user.auth_date}&first_name=${user.first_name}&hash=${user.hash}&id=${user.id}`;
 
-      const { isNewUser } = await signInWithTelegram(telegramUser, initData);
+      const { isNewUser } = await signInWithTelegram(telegramUser);
 
       if (isNewUser) {
         notifications.show({
