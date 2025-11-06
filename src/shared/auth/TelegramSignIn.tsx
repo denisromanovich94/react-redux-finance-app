@@ -7,7 +7,7 @@ import { useTelegram } from '../telegram/useTelegram';
 import { signInWithTelegram } from '../api/telegram';
 
 export function TelegramSignIn() {
-  const { isTelegramApp, user: telegramUser, initData } = useTelegram();
+  const { isTelegramApp, user: telegramUser } = useTelegram();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -22,7 +22,7 @@ export function TelegramSignIn() {
 
     try {
       setLoading(true);
-      const { isNewUser } = await signInWithTelegram(telegramUser, initData);
+      const { isNewUser } = await signInWithTelegram(telegramUser);
 
       if (isNewUser) {
         notifications.show({
