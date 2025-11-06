@@ -109,10 +109,12 @@ export async function getTelegramLink() {
  */
 export async function signInWithTelegram(
   telegramUser: TelegramUser,
-  initData: string
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  initData?: string
 ) {
   // ВАЖНО: В production нужно валидировать initData на сервере!
   // Это защитит от подделки данных пользователя
+  // TODO: Реализовать валидацию initData через Supabase Edge Function
 
   // Проверяем, есть ли уже связь с этим Telegram ID
   const existingLink = await checkTelegramLink(telegramUser.id);
