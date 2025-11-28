@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Grid, Title, Text, Group, Button, ActionIcon } from '@mantine/core';
+import { Grid, Title, Text, Group, Button, ActionIcon, Modal, NumberInput, Stack, Radio } from '@mantine/core';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import StatCard from '../shared/ui/StatCard';
-import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney, IconChevronLeft, IconChevronRight, IconClock, IconCurrencyDollar, IconChartLine, IconClockHour4 } from '@tabler/icons-react';
-import { useMediaQuery } from '@mantine/hooks';
-import { loadTransactions } from '../features/transactions/transactionsSlice';
+import { IconWallet, IconTrendingUp, IconTrendingDown, IconPigMoney, IconChevronLeft, IconChevronRight, IconClock, IconCurrencyDollar, IconChartLine, IconClockHour4, IconPlus } from '@tabler/icons-react';
+import { useMediaQuery, useDisclosure } from '@mantine/hooks';
+import { loadTransactions, addTransactionAsync } from '../features/transactions/transactionsSlice';
 import { convertCurrency, formatCurrencyAmount } from '../features/currency/utils';
 import CurrencySwitcher from '../features/currency/ui/CurrencySwitcher';
 import ExchangeRatesCard from '../features/currency/ui/ExchangeRatesCard';
@@ -26,6 +26,11 @@ export default function Overview() {
   const exchangeRates = useAppSelector((s) => s.currency.rates);
 
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
+
+  // Модалка корректировки баланса
+  const [balanceModalOpened, { open: openBalanceModal, close: closeBalanceModal }] = useDisclosure(false);
+  const [adjustmentAmount, setAdjustmentAmount] = useState<number>(0);
+  const [adjustmentType, setAdjustmentType] = useState<'add' | 'subtract'>('add');
 
   useEffect(() => {
     if (!loading && itemsCount === 0) {
@@ -154,6 +159,27 @@ export default function Overview() {
     setSelectedMonth(dayjs().format('YYYY-MM'));
   };
 
+  const handleBalanceAdjustment = () => {
+    if (!adjustmentAmount || adjustmentAmount === 0) {
+      closeBalanceModal();
+      return;
+    }
+
+    const amount = adjustmentType === 'add' ? adjustmentAmount : -adjustmentAmount;
+
+    dispatch(addTransactionAsync({
+      date: dayjs().format('DD.MM.YYYY'),
+      category: 'Корректировка баланса',
+      amount: amount,
+      comment: `Корректировка баланса: ${adjustmentType === 'add' ? '+' : '-'}${adjustmentAmount}`,
+      hours: 0,
+    }));
+
+    setAdjustmentAmount(0);
+    setAdjustmentType('add');
+    closeBalanceModal();
+  };
+
   return (
     <PageContainer maxWidth={1200}>
       <Group justify="space-between" mb="md">
@@ -222,6 +248,17 @@ export default function Overview() {
             value={formatCurrencyAmount(convertedTotalBalance, displayCurrency)}
             color="grape"
             icon={<IconPigMoney size={18} />}
+            action={
+              <ActionIcon
+                variant="light"
+                color="grape"
+                size="sm"
+                onClick={openBalanceModal}
+                title="Корректировка баланса"
+              >
+                <IconPlus size={14} />
+              </ActionIcon>
+            }
           />
         </Grid.Col>
 
@@ -266,6 +303,47 @@ export default function Overview() {
         </Grid.Col>
 
       </Grid>
+
+      <Modal
+        opened={balanceModalOpened}
+        onClose={closeBalanceModal}
+        title="Корректировка баланса"
+        styles={{ inner: { right: 0, left: 0 } }}
+        centered
+      >
+        <Stack>
+          <Radio.Group
+            value={adjustmentType}
+            onChange={(value) => setAdjustmentType(value as 'add' | 'subtract')}
+            label="Тип операции"
+          >
+            <Group mt="xs">
+              <Radio value="add" label="Добавить" />
+              <Radio value="subtract" label="Вычесть" />
+            </Group>
+          </Radio.Group>
+
+          <NumberInput
+            label="Сумма"
+            placeholder="Введите сумму"
+            value={adjustmentAmount}
+            onChange={(value) => setAdjustmentAmount(Number(value) || 0)}
+            min={0}
+            decimalScale={2}
+            fixedDecimalScale
+            thousandSeparator=" "
+          />
+
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={closeBalanceModal}>
+              Отмена
+            </Button>
+            <Button onClick={handleBalanceAdjustment}>
+              Применить
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
     </PageContainer>
   );
