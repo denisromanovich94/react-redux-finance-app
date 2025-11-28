@@ -50,6 +50,7 @@ export function formatCurrencyAmount(
   currency: CurrencyCode,
   short: boolean = false
 ): string {
+  const isNegative = amount < 0;
   const absAmount = Math.abs(amount);
   const formatted = new Intl.NumberFormat('ru-RU', {
     minimumFractionDigits: 2,
@@ -63,12 +64,13 @@ export function formatCurrencyAmount(
   };
 
   const symbol = symbols[currency] || currency;
+  const sign = isNegative ? '-' : '';
 
   if (short) {
-    return `${formatted} ${symbol}`;
+    return `${sign}${formatted} ${symbol}`;
   }
 
-  return `${formatted} ${symbol}`;
+  return `${sign}${formatted} ${symbol}`;
 }
 
 /**
