@@ -6,8 +6,6 @@ import {
   deleteTransaction as apiDeleteTransaction,
   type Transaction,
 } from './transactionsApi';
-import { loadState, saveState } from '../../shared/utils/persist';
-import type { PersistedState } from '../../shared/utils/persist';
 
 type TransactionsState = {
   items: Transaction[];
@@ -25,15 +23,8 @@ const initialState: TransactionsState = {
 export const loadTransactions = createAsyncThunk<Transaction[]>(
   'transactions/load',
   async () => {
-    const persisted: PersistedState | undefined = loadState();
-    if (persisted?.transactions?.items?.length) {
-      return persisted.transactions.items as Transaction[];
-    }
-
+    // Всегда грузим свежие данные из БД для синхронизации между устройствами
     const txs = await getTransactions();
-
-    saveState({ transactions: { items: txs } });
-
     return txs;
   }
 );
@@ -84,17 +75,14 @@ const slice = createSlice({
 
       .addCase(addTransactionAsync.fulfilled, (state, action: PayloadAction<Transaction>) => {
   state.items.unshift(action.payload);
-  saveState({ transactions: { items: state.items } });
 })
 .addCase(updateTransactionAsync.fulfilled, (state, action: PayloadAction<Transaction>) => {
   state.items = state.items.map((t) =>
     t.id === action.payload.id ? action.payload : t
   );
-  saveState({ transactions: { items: state.items } });
 })
 .addCase(deleteTransactionAsync.fulfilled, (state, action: PayloadAction<string>) => {
   state.items = state.items.filter((t) => t.id !== action.payload);
-  saveState({ transactions: { items: state.items } });
 });
   },
 });

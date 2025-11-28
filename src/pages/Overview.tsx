@@ -219,7 +219,7 @@ export default function Overview() {
         <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
           <StatCard
             label="Накопления (общие)"
-            value={formatCurrencyAmount(Math.max(convertedTotalBalance, 0), displayCurrency)}
+            value={formatCurrencyAmount(convertedTotalBalance, displayCurrency)}
             color="grape"
             icon={<IconPigMoney size={18} />}
           />
