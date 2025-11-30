@@ -5,6 +5,8 @@ import { categoriesReducer } from '../features/categories/categoriesSlice';
 import timeTrackerReducer from '../features/timetracker/timeTrackerSlice';
 import clientsReducer from '../features/clients/clientsSlice';
 import currencyReducer from '../features/currency/currencySlice';
+import todosReducer from '../features/todos/todosSlice';
+import crmReducer from '../features/crm/crmSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +16,8 @@ export const store = configureStore({
     timeTracker: timeTrackerReducer,
     clients: clientsReducer,
     currency: currencyReducer,
+    todos: todosReducer,
+    crm: crmReducer,
   },
 });
 
