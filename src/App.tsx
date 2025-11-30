@@ -14,6 +14,8 @@ import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mant
 import { IconSun, IconMoon } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
+import TodosPage from './pages/TodosPage';
+import CRMPage from './pages/CRMPage';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
@@ -126,14 +128,28 @@ export default function App() {
             onClick={toggle}
           />
 <NavLink
-            label="Тайм трекер Beta"
+            label="Задачи (beta)"
+            component={Link}
+            to="/todos"
+            active={location.pathname.startsWith('/todos')}
+            onClick={toggle}
+          />
+<NavLink
+            label="CRM (beta)"
+            component={Link}
+            to="/crm"
+            active={location.pathname.startsWith('/crm')}
+            onClick={toggle}
+          />
+<NavLink
+            label="Тайм трекер (beta)"
             component={Link}
             to="/tracker"
             active={location.pathname.startsWith('/tracker')}
             onClick={toggle}
           />
 <NavLink
-  label="Календарь Beta"
+  label="Календарь (beta)"
   component={Link}
   to="/calendar"
   active={location.pathname.startsWith('/calendar')}
@@ -166,6 +182,8 @@ export default function App() {
           <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
           <Route path="/clients" element={<RequireAuth><Clients /></RequireAuth>} />
+<Route path="/todos" element={<RequireAuth><TodosPage /></RequireAuth>} />
+<Route path="/crm" element={<RequireAuth><CRMPage /></RequireAuth>} />
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
