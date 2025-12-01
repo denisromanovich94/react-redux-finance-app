@@ -48,16 +48,6 @@ const sourceLabels = {
 // Порядок статусов воронки
 const statusFlow: LeadStatus[] = ['new', 'contacted', 'negotiation', 'won'];
 
-const getNextStatus = (currentStatus: LeadStatus): LeadStatus | null => {
-  if (currentStatus === 'lost') return null; // Из отказа никуда
-  if (currentStatus === 'won') return null; // Из сделки никуда
-
-  const currentIndex = statusFlow.indexOf(currentStatus);
-  if (currentIndex === -1 || currentIndex === statusFlow.length - 1) return null;
-
-  return statusFlow[currentIndex + 1];
-};
-
 export default function LeadCard({ lead, onEdit, onDelete, onStatusChange }: LeadCardProps) {
   const [rejectionModalOpened, setRejectionModalOpened] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
