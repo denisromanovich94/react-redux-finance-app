@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Modal, TextInput, Textarea, Select, Button, Group, Stack, NumberInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import type { Lead, CreateLeadInput } from '../types';
@@ -12,11 +13,9 @@ interface LeadModalProps {
 const statusOptions = [
   { value: 'new', label: 'Новый' },
   { value: 'contacted', label: 'Связались' },
-  { value: 'qualified', label: 'Квалифицирован' },
-  { value: 'proposal', label: 'Предложение' },
   { value: 'negotiation', label: 'Переговоры' },
-  { value: 'won', label: 'Выиграно' },
-  { value: 'lost', label: 'Проиграно' },
+  { value: 'won', label: 'Сделка' },
+  { value: 'lost', label: 'Отказ' },
 ];
 
 const sourceOptions = [
@@ -31,20 +30,43 @@ const sourceOptions = [
 export default function LeadModal({ opened, onClose, onSubmit, lead }: LeadModalProps) {
   const form = useForm<CreateLeadInput>({
     initialValues: {
-      name: lead?.name || '',
-      company: lead?.company || '',
-      email: lead?.email || '',
-      phone: lead?.phone || '',
-      status: lead?.status || 'new',
-      source: lead?.source || 'referral',
-      value: lead?.value || undefined,
-      description: lead?.description || '',
-      tags: lead?.tags || [],
+      name: '',
+      company: '',
+      email: '',
+      phone: '',
+      status: 'new',
+      source: 'referral',
+      value_min: undefined,
+      value_max: undefined,
+      description: '',
+      rejection_reason: '',
+      tags: [],
     },
     validate: {
       name: (value) => (!value ? 'Введите имя' : null),
     },
   });
+
+  useEffect(() => {
+    if (opened && lead) {
+      form.setValues({
+        name: lead.name || '',
+        company: lead.company || '',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        status: lead.status || 'new',
+        source: lead.source || 'referral',
+        value_min: lead.value_min || undefined,
+        value_max: lead.value_max || undefined,
+        description: lead.description || '',
+        rejection_reason: lead.rejection_reason || '',
+        tags: lead.tags || [],
+      });
+    } else if (opened && !lead) {
+      form.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, lead]);
 
   const handleSubmit = (values: CreateLeadInput) => {
     onSubmit(values);
@@ -104,13 +126,23 @@ export default function LeadModal({ opened, onClose, onSubmit, lead }: LeadModal
             />
           </Group>
 
-          <NumberInput
-            label="Потенциальная ценность (₽)"
-            placeholder="Введите сумму"
-            min={0}
-            thousandSeparator=" "
-            {...form.getInputProps('value')}
-          />
+          <Group grow>
+            <NumberInput
+              label="Мин. ценность (₽)"
+              placeholder="От"
+              min={0}
+              thousandSeparator=" "
+              {...form.getInputProps('value_min')}
+            />
+
+            <NumberInput
+              label="Макс. ценность (₽)"
+              placeholder="До"
+              min={0}
+              thousandSeparator=" "
+              {...form.getInputProps('value_max')}
+            />
+          </Group>
 
           <Textarea
             label="Описание"
@@ -118,6 +150,16 @@ export default function LeadModal({ opened, onClose, onSubmit, lead }: LeadModal
             minRows={3}
             {...form.getInputProps('description')}
           />
+
+          {form.values.status === 'lost' && (
+            <Textarea
+              label="Причина отказа"
+              placeholder="Укажите причину, почему не состоялась сделка"
+              minRows={2}
+              required
+              {...form.getInputProps('rejection_reason')}
+            />
+          )}
 
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={onClose}>

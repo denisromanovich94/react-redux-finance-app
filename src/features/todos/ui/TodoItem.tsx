@@ -17,11 +17,25 @@ const priorityColors = {
   urgent: 'red',
 } as const;
 
+const priorityLabels = {
+  low: 'Низкий',
+  medium: 'Средний',
+  high: 'Высокий',
+  urgent: 'Срочный',
+} as const;
+
 const statusColors = {
   todo: 'gray',
   in_progress: 'blue',
   completed: 'green',
   archived: 'dark',
+} as const;
+
+const statusLabels = {
+  todo: 'К выполнению',
+  in_progress: 'В процессе',
+  completed: 'Завершено',
+  archived: 'Архив',
 } as const;
 
 export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
@@ -33,7 +47,7 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
   const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
   return (
-    <Card shadow="xs" padding="md" withBorder>
+    <Card shadow="xs" padding="md" withBorder style={{ width: '100%' }}>
       <Group justify="space-between" wrap="nowrap">
         <Group wrap="nowrap" style={{ flex: 1 }}>
           <Checkbox
@@ -54,16 +68,16 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
               </Text>
 
               <Badge size="xs" color={priorityColors[todo.priority]} variant="dot">
-                {todo.priority}
+                {priorityLabels[todo.priority]}
               </Badge>
 
               <Badge size="xs" color={statusColors[todo.status]}>
-                {todo.status}
+                {statusLabels[todo.status]}
               </Badge>
             </Group>
 
             {todo.description && (
-              <Text size="xs" c="dimmed" lineClamp={2} mb={4}>
+              <Text size="xs" c="dimmed" lineClamp={2} mb={4} style={{ whiteSpace: 'pre-wrap' }}>
                 {todo.description}
               </Text>
             )}

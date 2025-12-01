@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Modal, TextInput, Textarea, Select, Button, Group, Stack } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
@@ -13,12 +14,11 @@ interface TodoModalProps {
 
 interface TodoFormValues {
   title: string;
-  description?: string;
+  description: string;
   priority: TodoPriority;
   due_date: Date | null;
-  project_id?: string;
+  project_id: string;
   tags?: TodoTag[];
-  time_estimate?: number;
 }
 
 const priorityOptions = [
@@ -29,22 +29,46 @@ const priorityOptions = [
 ];
 
 export default function TodoModal({ opened, onClose, onSubmit, todo, projects }: TodoModalProps) {
+  const projectsWithNone = [
+    { value: '', label: 'Без проекта' },
+    ...projects,
+  ];
+
   const form = useForm<TodoFormValues>({
     initialValues: {
-      title: todo?.title || '',
-      description: todo?.description || '',
-      priority: todo?.priority || 'medium',
-      due_date: todo?.due_date ? new Date(todo.due_date) : null,
-      project_id: todo?.project_id || undefined,
-      tags: todo?.tags || [],
-      time_estimate: todo?.time_estimate || undefined,
+      title: '',
+      description: '',
+      priority: 'medium',
+      due_date: null,
+      project_id: '',
+      tags: [],
     },
   });
 
+  useEffect(() => {
+    if (opened && todo) {
+      form.setValues({
+        title: todo.title || '',
+        description: todo.description || '',
+        priority: todo.priority || 'medium',
+        due_date: todo.due_date ? new Date(todo.due_date) : null,
+        project_id: todo.project_id || '',
+        tags: todo.tags || [],
+      });
+    } else if (opened && !todo) {
+      form.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, todo]);
+
   const handleSubmit = (values: TodoFormValues) => {
     const data: CreateTodoInput = {
-      ...values,
-      due_date: values.due_date ? values.due_date.toISOString() : undefined,
+      title: values.title,
+      description: values.description || undefined,
+      priority: values.priority,
+      due_date: values.due_date instanceof Date ? values.due_date.toISOString() : undefined,
+      project_id: values.project_id || undefined,
+      tags: values.tags,
     };
     onSubmit(data);
     form.reset();
@@ -96,17 +120,8 @@ export default function TodoModal({ opened, onClose, onSubmit, todo, projects }:
           <Select
             label="Проект"
             placeholder="Выберите проект"
-            data={projects}
-            clearable
+            data={projectsWithNone}
             {...form.getInputProps('project_id')}
-          />
-
-          <TextInput
-            label="Оценка времени (минуты)"
-            placeholder="Введите оценку в минутах"
-            type="number"
-            min={0}
-            {...form.getInputProps('time_estimate')}
           />
 
           <Group justify="flex-end" mt="md">

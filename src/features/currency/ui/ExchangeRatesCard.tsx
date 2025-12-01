@@ -8,7 +8,7 @@ export default function ExchangeRatesCard() {
 
   if (loading || !exchangeRates?.Valute) {
     return (
-      <Card radius="lg" p="lg" withBorder>
+      <Card radius="lg" p="lg" withBorder style={{ height: '100%', width: '100%' }}>
         <Group justify="space-between" mb="xs">
           <Text size="sm" c="dimmed">Курсы валют</Text>
           <ThemeIcon color="indigo" variant="light" radius="xl">
@@ -26,7 +26,7 @@ export default function ExchangeRatesCard() {
   const formatRate = (value: number) => value.toFixed(2);
 
   return (
-    <Card radius="lg" p="lg" withBorder>
+    <Card radius="lg" p="lg" withBorder style={{ height: '100%', width: '100%' }}>
       <Group justify="space-between" mb="xs">
         <Text size="sm" c="dimmed">Курсы валют</Text>
         <Group gap={4}>
