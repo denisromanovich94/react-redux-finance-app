@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Card, Text, Badge, Group, ActionIcon, Menu, Progress, Stack, Button, Modal, Textarea } from '@mantine/core';
-import { IconDots, IconEdit, IconTrash, IconMail, IconPhone, IconBuilding, IconChevronRight } from '@tabler/icons-react';
+import { Card, Text, Badge, Group, ActionIcon, Menu, Stack, Button, Modal, Textarea } from '@mantine/core';
+import { IconDots, IconEdit, IconTrash, IconMail, IconPhone, IconBuilding } from '@tabler/icons-react';
 import type { Lead, LeadStatus } from '../types';
 import dayjs from '../../../shared/dayjs';
 
@@ -59,7 +59,6 @@ const getNextStatus = (currentStatus: LeadStatus): LeadStatus | null => {
 };
 
 export default function LeadCard({ lead, onEdit, onDelete, onStatusChange }: LeadCardProps) {
-  const nextStatus = getNextStatus(lead.status);
   const [rejectionModalOpened, setRejectionModalOpened] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
