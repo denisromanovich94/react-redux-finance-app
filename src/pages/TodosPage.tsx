@@ -33,6 +33,11 @@ export default function TodosPage() {
   useEffect(() => {
     dispatch(loadTodos());
     dispatch(loadProjects());
+    // Устанавливаем "Активные" по умолчанию при первой загрузке
+    if (filters.status.length === 0) {
+      dispatch(setStatusFilter(['todo', 'in_progress']));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   const projectOptions = useMemo(
@@ -123,19 +128,26 @@ export default function TodosPage() {
         />
 
         <SegmentedControl
-          value={filters.status.length === 1 ? filters.status[0] : 'all'}
+          value={
+            filters.status.length === 0
+              ? 'all'
+              : filters.status.length === 2 && filters.status.includes('todo') && filters.status.includes('in_progress')
+                ? 'active'
+                : filters.status[0]
+          }
           onChange={(value) => {
-            if (value === 'all') {
+            if (value === 'active') {
+              dispatch(setStatusFilter(['todo', 'in_progress']));
+            } else if (value === 'all') {
               dispatch(setStatusFilter([]));
             } else {
               dispatch(setStatusFilter([value as TodoStatus]));
             }
           }}
           data={[
-            { label: 'Все', value: 'all' },
-            { label: 'К выполнению', value: 'todo' },
-            { label: 'В процессе', value: 'in_progress' },
+            { label: 'Активные', value: 'active' },
             { label: 'Завершено', value: 'completed' },
+            { label: 'Все', value: 'all' },
           ]}
         />
       </Stack>

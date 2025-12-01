@@ -12,7 +12,7 @@ type Props = {
 
 export default function StatCard({ label, value, color = 'gray', icon, action }: Props) {
   return (
-    <Card radius="lg" p="lg" withBorder>
+    <Card radius="lg" p="lg" withBorder style={{ height: '100%', width: '100%' }}>
       <Group justify="space-between" mb="xs">
         <Text size="sm" c="dimmed">{label}</Text>
         <Group gap="xs">

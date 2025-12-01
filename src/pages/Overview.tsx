@@ -215,7 +215,7 @@ export default function Overview() {
       {error && <Text c="red" mb="md">Ошибка: {error}</Text>}
 
       <Grid>
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Баланс (месяц)"
             value={formatCurrencyAmount(displayMonthTotals.balanceM, displayCurrency)}
@@ -224,7 +224,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Доходы (месяц)"
             value={formatCurrencyAmount(displayMonthTotals.incomeM, displayCurrency)}
@@ -233,7 +233,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Расходы (месяц)"
             value={formatCurrencyAmount(Math.abs(displayMonthTotals.expensesM), displayCurrency)}
@@ -242,7 +242,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Накопления (общие)"
             value={formatCurrencyAmount(convertedTotalBalance, displayCurrency)}
@@ -262,7 +262,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Часы работы (месяц)"
             value={monthlyHours.toFixed(1)}
@@ -271,7 +271,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Стоимость работы в час"
             value={monthlyHourlyRate.toFixed(2)}
@@ -280,7 +280,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label={isCurrentMonth ? "Прогноз на месяц" : "Доход за месяц"}
             value={formatCurrencyAmount(projectedIncome, displayCurrency)}
@@ -289,7 +289,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Часы работы в день"
             value={avgHoursPerDay.toFixed(2)}
@@ -298,7 +298,7 @@ export default function Overview() {
           />
         </Grid.Col>
 
-        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <ExchangeRatesCard />
         </Grid.Col>
 

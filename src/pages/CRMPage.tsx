@@ -16,7 +16,7 @@ import {
 } from '../features/crm/crmSlice';
 import LeadCard from '../features/crm/ui/LeadCard';
 import LeadModal from '../features/crm/ui/LeadModal';
-import type { Lead, LeadStatus, CreateLeadInput } from '../features/crm/types';
+import type { Lead, LeadStatus, CreateLeadInput, UpdateLeadInput } from '../features/crm/types';
 
 export default function CRMPage() {
   const dispatch = useAppDispatch();
@@ -79,6 +79,14 @@ export default function CRMPage() {
     closeModal();
   };
 
+  const handleStatusChange = (id: string, newStatus: LeadStatus, rejectionReason?: string) => {
+    const updates: UpdateLeadInput = { status: newStatus };
+    if (rejectionReason) {
+      updates.rejection_reason = rejectionReason;
+    }
+    dispatch(updateLeadAsync({ id, updates }));
+  };
+
   return (
     <PageContainer maxWidth={1400}>
       <Group justify="space-between" mb="lg">
@@ -134,8 +142,9 @@ export default function CRMPage() {
             { label: 'Все', value: 'all' },
             { label: 'Новые', value: 'new' },
             { label: 'Связались', value: 'contacted' },
-            { label: 'Квалифицированы', value: 'qualified' },
-            { label: 'Выиграно', value: 'won' },
+            { label: 'Переговоры', value: 'negotiation' },
+            { label: 'Сделки', value: 'won' },
+            { label: 'Отказы', value: 'lost' },
           ]}
         />
       </Stack>
@@ -144,11 +153,12 @@ export default function CRMPage() {
 
       <Grid>
         {filteredLeads.map((lead) => (
-          <Grid.Col key={lead.id} span={{ base: 12, sm: 6, md: 4 }}>
+          <Grid.Col key={lead.id} span={{ base: 12, sm: 6, md: 4 }} style={{ display: 'flex' }}>
             <LeadCard
               lead={lead}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
             />
           </Grid.Col>
         ))}

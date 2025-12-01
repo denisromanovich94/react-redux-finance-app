@@ -1,4 +1,4 @@
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
+export type LeadStatus = 'new' | 'contacted' | 'negotiation' | 'won' | 'lost';
 export type LeadSource = 'referral' | 'kwork' | 'website' | 'social' | 'phone' | 'other';
 export type ContactType = 'email' | 'phone' | 'meeting' | 'note';
 
@@ -11,9 +11,12 @@ export interface Lead {
   phone?: string;
   status: LeadStatus;
   source: LeadSource;
-  value?: number; // потенциальная ценность в рублях
+  value?: number; // потенциальная ценность в рублях (для совместимости со старыми данными)
+  value_min?: number; // минимальная потенциальная ценность в рублях
+  value_max?: number; // максимальная потенциальная ценность в рублях
   probability?: number; // вероятность закрытия (0-100)
   description?: string;
+  rejection_reason?: string; // причина отказа (для статуса lost)
   tags: string[];
   assigned_to?: string;
   next_action?: string;
@@ -84,8 +87,11 @@ export interface CreateLeadInput {
   status: LeadStatus;
   source: LeadSource;
   value?: number;
+  value_min?: number;
+  value_max?: number;
   probability?: number;
   description?: string;
+  rejection_reason?: string;
   tags?: string[];
 }
 
