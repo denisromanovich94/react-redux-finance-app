@@ -188,7 +188,7 @@ export const crmApi = {
 
     const totalLeads = leads.length;
     const newLeads = leads.filter(l => l.status === 'new').length;
-    const qualifiedLeads = leads.filter(l => l.status === 'qualified').length;
+    const qualifiedLeads = leads.filter(l => l.status === 'negotiation').length;
     const wonDeals = deals.filter(d => d.stage === 'won').length;
     const lostDeals = deals.filter(d => d.stage === 'lost').length;
 
