@@ -22,3 +22,9 @@ export async function getUserId(): Promise<string | null> {
   if (error) throw error;
   return data.user?.id ?? null;
 }
+
+export async function getUserEmail(): Promise<string | null> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  return data.user?.email ?? null;
+}

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../app/store';
 import { fetchSessions } from '../features/timetracker/timeTrackerThunks';
 import { Calendar } from '@mantine/dates';
-import { Modal, Text, Title, Stack, Badge, Group, Divider, Card, Timeline } from '@mantine/core';
+import { Modal, Text, Title, Stack, Badge, Divider, Card, Timeline, Group } from '@mantine/core';
 import { IconClock, IconActivity } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import dayjs from 'dayjs';
@@ -35,21 +35,14 @@ export default function CalendarPage() {
     ? sessions.filter((s) => dayjs(s.start_time).format('YYYY-MM-DD') === selectedDate)
     : [];
 
-  const totalDaysWithSessions = new Set(sessionDates).size;
-
   return (
     <Stack gap="lg">
-      <Group justify="space-between" align="center" wrap="wrap">
-        <div>
-          <Title order={isSmall ? 3 : 2}>Календарь работы</Title>
-          <Text c="dimmed" size="sm" mt={4}>
-            Нажмите на дату, чтобы посмотреть детали сессий
-          </Text>
-        </div>
-        <Badge size={isSmall ? 'lg' : 'xl'} variant="light" color="teal">
-          Рабочих дней: {totalDaysWithSessions}
-        </Badge>
-      </Group>
+      <div>
+        <Title order={isSmall ? 3 : 2}>Календарь работы</Title>
+        <Text c="dimmed" size="sm" mt={4}>
+          Нажмите на дату, чтобы посмотреть детали сессий
+        </Text>
+      </div>
 
       <Card shadow="sm" padding={isSmall ? 'sm' : 'lg'} radius="md" withBorder>
         <Calendar

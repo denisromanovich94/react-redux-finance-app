@@ -7,6 +7,7 @@ import clientsReducer from '../features/clients/clientsSlice';
 import currencyReducer from '../features/currency/currencySlice';
 import todosReducer from '../features/todos/todosSlice';
 import crmReducer from '../features/crm/crmSlice';
+import profileReducer from '../features/profile/profileSlice';
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     currency: currencyReducer,
     todos: todosReducer,
     crm: crmReducer,
+    profile: profileReducer,
   },
 });
 
