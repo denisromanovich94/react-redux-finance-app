@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { ColorSchemeScript, localStorageColorSchemeManager } from '@mantine/core';
+import { ColorSchemeScript } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { store } from './app/store';
 import App from './App';
@@ -18,10 +18,6 @@ import { CustomThemeProvider } from './shared/theme/ThemeProvider';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('ru');
-
-const colorSchemeManager = localStorageColorSchemeManager({
-  key: 'mantine-color-scheme',
-});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
