@@ -24,10 +24,10 @@ export const crmApi = {
       phone: input.phone || null,
       status: input.status,
       source: input.source,
-      value: input.value || null,
-      value_min: input.value_min || null,
-      value_max: input.value_max || null,
-      probability: input.probability || 50,
+      value: input.value ?? null,
+      value_min: input.value_min ?? null,
+      value_max: input.value_max ?? null,
+      probability: input.probability ?? 50,
       description: input.description || null,
       rejection_reason: input.rejection_reason || null,
       tags: input.tags || [],
@@ -41,7 +41,11 @@ export const crmApi = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Ошибка создания лида:', error);
+      console.error('📦 Данные которые пытались отправить:', newLead);
+      throw error;
+    }
     return data as Lead;
   },
 

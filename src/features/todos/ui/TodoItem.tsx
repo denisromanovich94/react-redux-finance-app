@@ -1,10 +1,11 @@
 import { Card, Checkbox, Text, Badge, Group, ActionIcon, Menu, Progress } from '@mantine/core';
-import { IconDots, IconEdit, IconTrash, IconClock, IconFlag } from '@tabler/icons-react';
-import type { Todo } from '../types';
+import { IconDots, IconEdit, IconTrash, IconClock, IconFlag, IconTag } from '@tabler/icons-react';
+import type { Todo, TodoCategory } from '../types';
 import dayjs from '../../../shared/dayjs';
 
 interface TodoItemProps {
   todo: Todo;
+  categories: TodoCategory[];
   onToggle: (id: string, completed: boolean) => void;
   onEdit: (todo: Todo) => void;
   onDelete: (id: string) => void;
@@ -38,13 +39,15 @@ const statusLabels = {
   archived: 'Архив',
 } as const;
 
-export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, categories, onToggle, onEdit, onDelete }: TodoItemProps) {
   const isCompleted = todo.status === 'completed';
   const isOverdue = todo.due_date && dayjs(todo.due_date).isBefore(dayjs(), 'day') && !isCompleted;
 
   const completedSubtasks = todo.subtasks.filter(s => s.completed).length;
   const totalSubtasks = todo.subtasks.length;
   const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+
+  const category = categories.find(c => c.id === todo.project_id);
 
   return (
     <Card shadow="xs" padding="md" withBorder style={{ width: '100%' }}>
@@ -66,6 +69,12 @@ export default function TodoItem({ todo, onToggle, onEdit, onDelete }: TodoItemP
               >
                 {todo.title}
               </Text>
+
+              {category && (
+                <Badge size="xs" color={category.color} variant="filled" leftSection={<IconTag size={12} />}>
+                  {category.name}
+                </Badge>
+              )}
 
               <Badge size="xs" color={priorityColors[todo.priority]} variant="dot">
                 {priorityLabels[todo.priority]}

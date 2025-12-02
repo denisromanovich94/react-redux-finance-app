@@ -39,7 +39,7 @@ const sourceColors = {
 const sourceLabels = {
   referral: 'Сарафанка',
   kwork: 'Кворк',
-  website: 'Сайт',
+  website: 'Кворк',
   social: 'Соцсети',
   phone: 'Телефон',
   other: 'Другое',

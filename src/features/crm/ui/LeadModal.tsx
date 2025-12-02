@@ -20,8 +20,7 @@ const statusOptions = [
 
 const sourceOptions = [
   { value: 'referral', label: 'Сарафанка' },
-  { value: 'kwork', label: 'Кворк' },
-  { value: 'website', label: 'Сайт' },
+  { value: 'website', label: 'Кворк' },
   { value: 'social', label: 'Соцсети' },
   { value: 'phone', label: 'Телефон' },
   { value: 'other', label: 'Другое' },
