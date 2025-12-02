@@ -9,7 +9,7 @@ interface TodoModalProps {
   onClose: () => void;
   onSubmit: (data: CreateTodoInput) => void;
   todo?: Todo | null;
-  projects: { value: string; label: string }[];
+  categories: { value: string; label: string }[];
 }
 
 interface TodoFormValues {
@@ -28,10 +28,10 @@ const priorityOptions = [
   { value: 'urgent', label: 'Срочный' },
 ];
 
-export default function TodoModal({ opened, onClose, onSubmit, todo, projects }: TodoModalProps) {
-  const projectsWithNone = [
-    { value: '', label: 'Без проекта' },
-    ...projects,
+export default function TodoModal({ opened, onClose, onSubmit, todo, categories }: TodoModalProps) {
+  const categoriesWithNone = [
+    { value: '', label: 'Без категории' },
+    ...categories,
   ];
 
   const form = useForm<TodoFormValues>({
@@ -118,9 +118,9 @@ export default function TodoModal({ opened, onClose, onSubmit, todo, projects }:
           </Group>
 
           <Select
-            label="Проект"
-            placeholder="Выберите проект"
-            data={projectsWithNone}
+            label="Категория"
+            placeholder="Выберите категорию"
+            data={categoriesWithNone}
             {...form.getInputProps('project_id')}
           />
 

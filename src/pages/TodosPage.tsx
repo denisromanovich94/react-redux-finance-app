@@ -1,38 +1,39 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Title, Button, Group, Stack, SegmentedControl, TextInput } from '@mantine/core';
-import { IconPlus, IconSearch, IconFolder } from '@tabler/icons-react';
+import { Title, Button, Group, Stack, SegmentedControl, TextInput, Select } from '@mantine/core';
+import { IconPlus, IconSearch, IconTag } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import {
   loadTodos,
-  loadProjects,
+  loadCategories,
   createTodoAsync,
   updateTodoAsync,
   deleteTodoAsync,
-  createProjectAsync,
+  createCategoryAsync,
   setStatusFilter,
   setSearchFilter,
+  setCategoryFilter,
 } from '../features/todos/todosSlice';
 import TodoItem from '../features/todos/ui/TodoItem';
 import TodoModal from '../features/todos/ui/TodoModal';
-import ProjectModal from '../features/todos/ui/ProjectModal';
+import CategoryModal from '../features/todos/ui/CategoryModal';
 import type { Todo, TodoStatus, CreateTodoInput } from '../features/todos/types';
 
 export default function TodosPage() {
   const dispatch = useAppDispatch();
   const todos = useAppSelector((s) => s.todos.items);
-  const projects = useAppSelector((s) => s.todos.projects);
+  const categories = useAppSelector((s) => s.todos.categories);
   const filters = useAppSelector((s) => s.todos.filters);
   const loading = useAppSelector((s) => s.todos.loading);
 
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const [projectModalOpened, { open: openProjectModal, close: closeProjectModal }] = useDisclosure(false);
+  const [categoryModalOpened, { open: openCategoryModal, close: closeCategoryModal }] = useDisclosure(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     dispatch(loadTodos());
-    dispatch(loadProjects());
+    dispatch(loadCategories());
     // Устанавливаем "Активные" по умолчанию при первой загрузке
     if (filters.status.length === 0) {
       dispatch(setStatusFilter(['todo', 'in_progress']));
@@ -40,14 +41,18 @@ export default function TodosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  const projectOptions = useMemo(
-    () => projects.map((p) => ({ value: p.id, label: p.name })),
-    [projects]
+  const categoryOptions = useMemo(
+    () => categories.map((c) => ({ value: c.id, label: c.name })),
+    [categories]
   );
 
   const filteredTodos = useMemo(() => {
     return todos.filter((todo) => {
       if (filters.status.length > 0 && !filters.status.includes(todo.status)) {
+        return false;
+      }
+
+      if (filters.project_id && todo.project_id !== filters.project_id) {
         return false;
       }
 
@@ -97,8 +102,8 @@ export default function TodosPage() {
     closeModal();
   };
 
-  const handleCreateProject = (data: { name: string; color: string; description?: string }) => {
-    dispatch(createProjectAsync(data));
+  const handleCreateCategory = (data: { name: string; color: string; description?: string }) => {
+    dispatch(createCategoryAsync(data));
   };
 
   return (
@@ -108,10 +113,10 @@ export default function TodosPage() {
         <Group>
           <Button
             variant="light"
-            leftSection={<IconFolder size={16} />}
-            onClick={openProjectModal}
+            leftSection={<IconTag size={16} />}
+            onClick={openCategoryModal}
           >
-            Новый проект
+            Новая категория
           </Button>
           <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
             Создать задачу
@@ -127,29 +132,43 @@ export default function TodosPage() {
           onChange={(e) => dispatch(setSearchFilter(e.currentTarget.value))}
         />
 
-        <SegmentedControl
-          value={
-            filters.status.length === 0
-              ? 'all'
-              : filters.status.length === 2 && filters.status.includes('todo') && filters.status.includes('in_progress')
-                ? 'active'
-                : filters.status[0]
-          }
-          onChange={(value) => {
-            if (value === 'active') {
-              dispatch(setStatusFilter(['todo', 'in_progress']));
-            } else if (value === 'all') {
-              dispatch(setStatusFilter([]));
-            } else {
-              dispatch(setStatusFilter([value as TodoStatus]));
+        <Group grow>
+          <SegmentedControl
+            value={
+              filters.status.length === 0
+                ? 'all'
+                : filters.status.length === 2 && filters.status.includes('todo') && filters.status.includes('in_progress')
+                  ? 'active'
+                  : filters.status[0]
             }
-          }}
-          data={[
-            { label: 'Активные', value: 'active' },
-            { label: 'Завершено', value: 'completed' },
-            { label: 'Все', value: 'all' },
-          ]}
-        />
+            onChange={(value) => {
+              if (value === 'active') {
+                dispatch(setStatusFilter(['todo', 'in_progress']));
+              } else if (value === 'all') {
+                dispatch(setStatusFilter([]));
+              } else {
+                dispatch(setStatusFilter([value as TodoStatus]));
+              }
+            }}
+            data={[
+              { label: 'Активные', value: 'active' },
+              { label: 'Завершено', value: 'completed' },
+              { label: 'Все', value: 'all' },
+            ]}
+          />
+
+          <Select
+            placeholder="Все категории"
+            leftSection={<IconTag size={16} />}
+            data={[
+              { value: '', label: 'Все категории' },
+              ...categoryOptions,
+            ]}
+            value={filters.project_id || ''}
+            onChange={(value) => dispatch(setCategoryFilter(value || undefined))}
+            clearable
+          />
+        </Group>
       </Stack>
 
       {loading && <Title order={4}>Загрузка...</Title>}
@@ -159,6 +178,7 @@ export default function TodosPage() {
           <TodoItem
             key={todo.id}
             todo={todo}
+            categories={categories}
             onToggle={handleToggleTodo}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -177,13 +197,13 @@ export default function TodosPage() {
         onClose={handleModalClose}
         onSubmit={editingTodo ? handleUpdateTodo : handleCreateTodo}
         todo={editingTodo}
-        projects={projectOptions}
+        categories={categoryOptions}
       />
 
-      <ProjectModal
-        opened={projectModalOpened}
-        onClose={closeProjectModal}
-        onSubmit={handleCreateProject}
+      <CategoryModal
+        opened={categoryModalOpened}
+        onClose={closeCategoryModal}
+        onSubmit={handleCreateCategory}
       />
     </PageContainer>
   );

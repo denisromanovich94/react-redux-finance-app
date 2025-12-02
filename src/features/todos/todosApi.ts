@@ -1,5 +1,5 @@
 import { supabase } from '../../shared/api/supabase';
-import type { Todo, TodoProject, CreateTodoInput, UpdateTodoInput } from './types';
+import type { Todo, TodoCategory, CreateTodoInput, UpdateTodoInput } from './types';
 
 export const todosApi = {
   // Todos CRUD
@@ -97,8 +97,8 @@ export const todosApi = {
     if (error) throw error;
   },
 
-  // Projects CRUD
-  async fetchProjects(userId: string): Promise<TodoProject[]> {
+  // Categories CRUD (использует таблицу todo_projects)
+  async fetchCategories(userId: string): Promise<TodoCategory[]> {
     const { data, error } = await supabase
       .from('todo_projects')
       .select('*')
@@ -106,12 +106,12 @@ export const todosApi = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []) as TodoProject[];
+    return (data || []) as TodoCategory[];
   },
 
-  async createProject(userId: string, name: string, color: string, description?: string): Promise<TodoProject> {
+  async createCategory(userId: string, name: string, color: string, description?: string): Promise<TodoCategory> {
     const now = new Date().toISOString();
-    const newProject = {
+    const newCategory = {
       user_id: userId,
       name,
       description: description || '',
@@ -122,15 +122,15 @@ export const todosApi = {
 
     const { data, error } = await supabase
       .from('todo_projects')
-      .insert(newProject)
+      .insert(newCategory)
       .select()
       .single();
 
     if (error) throw error;
-    return data as TodoProject;
+    return data as TodoCategory;
   },
 
-  async updateProject(id: string, updates: Partial<TodoProject>): Promise<TodoProject> {
+  async updateCategory(id: string, updates: Partial<TodoCategory>): Promise<TodoCategory> {
     const { data, error } = await supabase
       .from('todo_projects')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -139,10 +139,10 @@ export const todosApi = {
       .single();
 
     if (error) throw error;
-    return data as TodoProject;
+    return data as TodoCategory;
   },
 
-  async deleteProject(id: string): Promise<void> {
+  async deleteCategory(id: string): Promise<void> {
     const { error } = await supabase
       .from('todo_projects')
       .delete()

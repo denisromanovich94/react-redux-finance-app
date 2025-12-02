@@ -24,7 +24,7 @@ export interface Todo {
   due_date?: string; // ISO format
   tags: TodoTag[];
   subtasks: TodoSubtask[];
-  project_id?: string;
+  project_id?: string; // используется как category_id
   assigned_to?: string; // для CRM интеграции
   time_estimate?: number; // в минутах
   time_spent?: number; // в минутах (для трекинга)
@@ -33,7 +33,7 @@ export interface Todo {
   completed_at?: string;
 }
 
-export interface TodoProject {
+export interface TodoCategory {
   id: string;
   user_id: string;
   name: string;
@@ -46,14 +46,14 @@ export interface TodoProject {
 
 export interface TodosState {
   items: Todo[];
-  projects: TodoProject[];
+  categories: TodoCategory[];
   tags: TodoTag[];
   loading: boolean;
   error: string | null;
   filters: {
     status: TodoStatus[];
     priority: TodoPriority[];
-    project_id?: string;
+    project_id?: string; // используется как category_id в UI
     tags: string[];
     search: string;
   };
@@ -64,7 +64,7 @@ export interface CreateTodoInput {
   description?: string;
   priority: TodoPriority;
   due_date?: string;
-  project_id?: string;
+  project_id?: string; // используется как category_id
   tags?: TodoTag[];
   time_estimate?: number;
 }
