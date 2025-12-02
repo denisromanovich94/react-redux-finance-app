@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,Box,Paper,}
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea, ScrollArea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,Box,Paper,ColorInput,}
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -26,19 +26,6 @@ import { notifications } from '@mantine/notifications';
 import { convertCurrency } from '../features/currency/utils';
 import type { CurrencyCode } from '../features/currency/types';
 
-const colorOptions = [
-    { value: 'teal', label: 'Чайный' },
-    { value: 'blue', label: 'Синий' },
-    { value: 'red', label: 'Красный' },
-    { value: 'yellow', label: 'Жёлтый' },
-    { value: 'orange', label: 'Оранжевый' },
-    { value: 'purple', label: 'Пурпурный' },
-    { value: 'black', label: 'Черный' },
-    { value: 'white', label: 'Белый' },
-    { value: 'wheat', label: 'Бежевый' },
-    { value: 'green', label: 'Зеленый' },
-  ];
-  
 export default function Transactions() {
   const dispatch = useAppDispatch();
   const transactions = useAppSelector((s) => s.transactions.items);
@@ -54,7 +41,7 @@ export default function Transactions() {
   const [catOpened, setCatOpened] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
-  const [newCatColor, setNewCatColor] = useState('teal');
+  const [newCatColor, setNewCatColor] = useState('#20c997');
   const [displayCount, setDisplayCount] = useState(15);
 
   const exchangeRates = useAppSelector((s) => s.currency.rates);
@@ -138,7 +125,7 @@ const canSaveCategory = newCatName.trim().length > 0;
 const resetNewCategoryForm = () => {
   setNewCatName('');
   setNewCatType('expense');
-  setNewCatColor('teal');
+  setNewCatColor('#20c997');
   setCatEditingId(null);
 };
 
@@ -509,17 +496,19 @@ const expenseCategories = useMemo(
           </Group>
         </Radio.Group>
 
-        <Select
+        <ColorInput
           label="Цвет"
           value={newCatColor}
-          onChange={(v) => setNewCatColor(v || 'teal')}
-          data={colorOptions}
-          renderOption={({ option }) => (
-            <Group gap="xs">
-              <div style={{ width: 14, height: 14, borderRadius: '50%', backgroundColor: option.value }} />
-              <span>{option.label}</span>
-            </Group>
-          )}
+          onChange={(v) => setNewCatColor(v)}
+          format="hex"
+          swatches={[
+            'teal', 'blue', 'red', 'yellow', 'orange', 'purple', 'green', 'pink',
+            'cyan', 'indigo', 'lime', 'grape', 'violet', 'brown', 'gray',
+            '#FF6B6B', '#4ECDC4', '#95E1D3', '#F38181', '#AA96DA',
+            '#FCBAD3', '#FFFFD2', '#A8D8EA', '#FFD3B6', '#FFAAA5',
+            '#FF8B94', '#FFC6C7', '#C7CEEA', '#B5EAD7', '#E2F0CB',
+          ]}
+          placeholder="Выберите цвет"
         />
 
         <Group justify="flex-end" mt="sm">
