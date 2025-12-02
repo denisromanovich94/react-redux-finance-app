@@ -11,7 +11,7 @@ import RequireAuth from './shared/auth/RequireAuth';
 import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconSun, IconMoon } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconSettings } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import TodosPage from './pages/TodosPage';
@@ -19,9 +19,12 @@ import CRMPage from './pages/CRMPage';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
+import { ProfileModal } from './features/profile/ui/ProfileModal';
+import { fetchProfile } from './features/profile/profileSlice';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
+  const [profileOpened, { open: openProfile, close: closeProfile }] = useDisclosure(false);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -63,17 +66,27 @@ export default function App() {
     supabase.auth.getUser().then(({ data }) => {
       if (!mounted) return;
       setAuthed(!!data.user);
+
+      // Загружаем профиль пользователя при входе
+      if (data.user) {
+        dispatch(fetchProfile(data.user.id));
+      }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setAuthed(!!session?.user);
+
+      // Загружаем профиль при изменении состояния авторизации
+      if (session?.user) {
+        dispatch(fetchProfile(session.user.id));
+      }
     });
 
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [dispatch]);
 
   const handleLogout = async () => {
     await signOut();
@@ -87,11 +100,25 @@ export default function App() {
       padding="md"
     >
       <AppShell.Header>
-  <Group h="100%" px="md" style={{ width: '100%' }}>
-    <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-    <Title order={3}>Finance App</Title>
+  <Group h="100%" px="md" justify="space-between">
+    <Group>
+      <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+      <Title order={3}>Finance App</Title>
+    </Group>
+    <Group>
+      {authed && (
+        <ActionIcon
+          variant="default"
+          size="lg"
+          radius="xl"
+          aria-label="Настройки профиля"
+          onClick={openProfile}
+          title="Профиль"
+        >
+          <IconSettings size={18} />
+        </ActionIcon>
+      )}
       <ThemeToggle />
-    <Group ml="auto">
     </Group>
   </Group>
 </AppShell.Header>
@@ -191,6 +218,8 @@ export default function App() {
 
         {authed && <FloatingTracker />}
       </AppShell.Main>
+
+      <ProfileModal opened={profileOpened} onClose={closeProfile} />
     </AppShell>
   );
 }
