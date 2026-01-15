@@ -19,6 +19,7 @@ export default function CurrencySwitcher() {
         { label: '₽ RUB', value: 'RUB' },
         { label: '$ USD', value: 'USD' },
         { label: '€ EUR', value: 'EUR' },
+        { label: '₴ UAH', value: 'UAH' },
       ]}
       size="xs"
     />

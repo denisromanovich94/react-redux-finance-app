@@ -155,20 +155,6 @@ export default function App() {
             onClick={toggle}
           />
 <NavLink
-            label="Задачи (beta)"
-            component={Link}
-            to="/todos"
-            active={location.pathname.startsWith('/todos')}
-            onClick={toggle}
-          />
-<NavLink
-            label="CRM (beta)"
-            component={Link}
-            to="/crm"
-            active={location.pathname.startsWith('/crm')}
-            onClick={toggle}
-          />
-<NavLink
             label="Тайм трекер (beta)"
             component={Link}
             to="/tracker"

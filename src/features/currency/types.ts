@@ -1,4 +1,4 @@
-export type CurrencyCode = 'RUB' | 'USD' | 'EUR';
+export type CurrencyCode = 'RUB' | 'USD' | 'EUR' | 'UAH';
 
 export interface ExchangeRate {
   CharCode: string;

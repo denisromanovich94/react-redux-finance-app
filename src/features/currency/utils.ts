@@ -61,6 +61,7 @@ export function formatCurrencyAmount(
     RUB: '₽',
     USD: '$',
     EUR: '€',
+    UAH: '₴',
   };
 
   const symbol = symbols[currency] || currency;
@@ -81,6 +82,7 @@ export function getCurrencySymbol(currency: CurrencyCode): string {
     RUB: '₽',
     USD: '$',
     EUR: '€',
+    UAH: '₴',
   };
   return symbols[currency] || currency;
 }
@@ -93,6 +95,7 @@ export function getCurrencyName(currency: CurrencyCode): string {
     RUB: 'Рубль',
     USD: 'Доллар',
     EUR: 'Евро',
+    UAH: 'Гривна',
   };
   return names[currency] || currency;
 }

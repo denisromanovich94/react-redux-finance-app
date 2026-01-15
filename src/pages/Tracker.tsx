@@ -281,6 +281,8 @@ export default function Tracker() {
         onClose={() => setEditModalOpened(false)}
         title="Редактировать запись"
         size="lg"
+        styles={{ inner: { right: 0, left: 0 } }}
+        centered
       >
         <Stack>
           <Select

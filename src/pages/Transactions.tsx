@@ -397,7 +397,7 @@ const expenseCategories = useMemo(
     </Tabs.List>
 
     <Tabs.Panel value="income" pt="md">
-      <ScrollArea style={{ maxHeight: catFull || isSmall ? 'calc(100vh - 220px)' : 520 }}>
+      <Table.ScrollContainer minWidth={300} h={catFull || isSmall ? 'calc(100vh - 220px)' : 520}>
         <Table striped highlightOnHover withTableBorder withColumnBorders>
           <Table.Thead>
             <Table.Tr>
@@ -434,11 +434,11 @@ const expenseCategories = useMemo(
             ))}
           </Table.Tbody>
         </Table>
-      </ScrollArea>
+      </Table.ScrollContainer>
     </Tabs.Panel>
 
     <Tabs.Panel value="expense" pt="md">
-      <ScrollArea style={{ maxHeight: catFull || isSmall ? 'calc(100vh - 220px)' : 520 }}>
+      <Table.ScrollContainer minWidth={300} h={catFull || isSmall ? 'calc(100vh - 220px)' : 520}>
         <Table striped highlightOnHover withTableBorder withColumnBorders>
           <Table.Thead>
             <Table.Tr>
@@ -475,7 +475,7 @@ const expenseCategories = useMemo(
             ))}
           </Table.Tbody>
         </Table>
-      </ScrollArea>
+      </Table.ScrollContainer>
     </Tabs.Panel>
   </Tabs>
 </Grid.Col>
