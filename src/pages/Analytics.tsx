@@ -18,6 +18,7 @@ import PageContainer from '../shared/ui/PageContainer';
 import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
+import { loadCategories } from '../features/categories/categoriesSlice';
 import { convertCurrency, formatCurrencyAmount } from '../features/currency/utils';
 import CurrencySwitcher from '../features/currency/ui/CurrencySwitcher';
 import dayjs from '../shared/dayjs';
@@ -38,6 +39,7 @@ export default function Analytics() {
   const isSmall = useMediaQuery('(max-width: 48em)');
   const loading = useAppSelector((s) => s.transactions.loading);
   const itemsCount = useAppSelector((s) => s.transactions.items.length);
+  const categoriesCount = useAppSelector((s) => s.categories.items.length);
 
   // Валюта и курсы
   const displayCurrency = useAppSelector((s) => s.currency.displayCurrency);
@@ -47,7 +49,10 @@ export default function Analytics() {
     if (!loading && itemsCount === 0) {
       dispatch(loadTransactions());
     }
-  }, [dispatch, loading, itemsCount]);
+    if (categoriesCount === 0) {
+      dispatch(loadCategories());
+    }
+  }, [dispatch, loading, itemsCount, categoriesCount]);
 
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
   const [selectedYear, setSelectedYear] = useState(() => dayjs().year());

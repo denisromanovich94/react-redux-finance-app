@@ -4,7 +4,7 @@ import { notifications } from '@mantine/notifications';
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../hooks';
 import { fetchProfile, updateProfile, createProfile } from '../profileSlice';
-import { getUserId, getUserEmail } from '../../../shared/api/auth';
+import { useAuth } from '../../../shared/auth/AuthContext';
 import type { ThemeColor } from '../types';
 
 interface ProfileModalProps {
@@ -15,8 +15,8 @@ interface ProfileModalProps {
 export function ProfileModal({ opened, onClose }: ProfileModalProps) {
   const dispatch = useAppDispatch();
   const { profile, loading } = useAppSelector((state) => state.profile);
+  const { user } = useAuth(); // Используем централизованный AuthContext
   const [isEditing, setIsEditing] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
 
   const form = useForm({
     initialValues: {
@@ -30,26 +30,22 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
     },
   });
 
-  // Загрузить профиль и email при открытии модалки
+  // Загрузить профиль при открытии модалки
   useEffect(() => {
-    if (opened) {
-      const loadProfileAndEmail = async () => {
-        const userId = await getUserId();
-        const email = await getUserEmail();
-
-        if (email) {
-          setUserEmail(email);
-          form.setFieldValue('email', email);
+    if (opened && user) {
+      const loadProfile = async () => {
+        if (user.email) {
+          form.setFieldValue('email', user.email);
         }
 
-        if (userId && email) {
+        if (user.id && user.email) {
           try {
-            await dispatch(fetchProfile(userId)).unwrap();
+            await dispatch(fetchProfile(user.id)).unwrap();
           } catch {
             // Если профиль не найден, пытаемся создать его
             console.log('Profile not found, attempting to create new one');
             try {
-              await dispatch(createProfile({ userId, email })).unwrap();
+              await dispatch(createProfile({ userId: user.id, email: user.email })).unwrap();
             } catch (createError) {
               // Игнорируем ошибки создания профиля (может уже существовать)
               console.error('Error creating profile:', createError);
@@ -57,16 +53,16 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
           }
         }
       };
-      loadProfileAndEmail();
+      loadProfile();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opened, dispatch]);
+  }, [opened, user?.id, dispatch]);
 
   // Заполнить форму данными профиля
   const updateFormValues = useCallback(() => {
     if (profile) {
       form.setValues({
-        email: userEmail || profile.email || '',
+        email: user?.email || profile.email || '',
         first_name: profile.first_name || '',
         last_name: profile.last_name || '',
         phone: profile.phone || '',
@@ -76,7 +72,7 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, userEmail]);
+  }, [profile, user?.email]);
 
   useEffect(() => {
     updateFormValues();
@@ -84,8 +80,7 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      const userId = await getUserId();
-      if (!userId) {
+      if (!user?.id) {
         notifications.show({
           color: 'red',
           message: 'Ошибка: пользователь не авторизован',
@@ -95,7 +90,7 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
 
       await dispatch(
         updateProfile({
-          userId,
+          userId: user.id,
           updates: {
             first_name: values.first_name,
             last_name: values.last_name,
@@ -131,8 +126,7 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
     if (!value) return;
 
     try {
-      const userId = await getUserId();
-      if (!userId) {
+      if (!user?.id) {
         notifications.show({
           color: 'red',
           message: 'Ошибка: пользователь не авторизован',
@@ -146,7 +140,7 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
       // Сохраняем в базу данных
       await dispatch(
         updateProfile({
-          userId,
+          userId: user.id,
           updates: {
             theme_color: value as ThemeColor,
           },

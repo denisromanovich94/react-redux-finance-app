@@ -1,14 +1,13 @@
 import { AppShell, Burger, Group, NavLink, ScrollArea, Title, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
 import Clients from './pages/Clients';
 import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
-import { supabase } from './shared/api/supabase';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { IconSun, IconMoon, IconSettings } from '@tabler/icons-react';
@@ -21,6 +20,7 @@ import { useAppDispatch } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
 import { ProfileModal } from './features/profile/ui/ProfileModal';
 import { fetchProfile } from './features/profile/profileSlice';
+import { useAuth } from './shared/auth/AuthContext';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -28,7 +28,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [authed, setAuthed] = useState(false);
+  const { user } = useAuth(); // Используем централизованный AuthContext
 
   function ThemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
@@ -60,33 +60,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, [dispatch]);
 
+  // Загружаем профиль пользователя при авторизации
   useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!mounted) return;
-      setAuthed(!!data.user);
-
-      // Загружаем профиль пользователя при входе
-      if (data.user) {
-        dispatch(fetchProfile(data.user.id));
-      }
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setAuthed(!!session?.user);
-
-      // Загружаем профиль при изменении состояния авторизации
-      if (session?.user) {
-        dispatch(fetchProfile(session.user.id));
-      }
-    });
-
-    return () => {
-      mounted = false;
-      sub.subscription.unsubscribe();
-    };
-  }, [dispatch]);
+    if (user?.id) {
+      dispatch(fetchProfile(user.id));
+    }
+  }, [user?.id, dispatch]);
 
   const handleLogout = async () => {
     await signOut();
@@ -106,7 +85,7 @@ export default function App() {
       <Title order={3}>Finance App</Title>
     </Group>
     <Group>
-      {authed && (
+      {user && (
         <ActionIcon
           variant="default"
           size="lg"
@@ -168,7 +147,7 @@ export default function App() {
   active={location.pathname.startsWith('/calendar')}
   onClick={toggle}
 />
-          {!authed ? (
+          {!user ? (
             <NavLink
               label="Войти"
               component={Link}
@@ -202,7 +181,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
-        {authed && <FloatingTracker />}
+        {user && <FloatingTracker />}
       </AppShell.Main>
 
       <ProfileModal opened={profileOpened} onClose={closeProfile} />

@@ -1,36 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Center, Loader } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../api/supabase';
 import type { ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Проверяем текущую сессию (Supabase сама читает из localStorage)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/auth', { replace: true });
-      } else {
-        setChecking(false);
-      }
-    });
+    // Если завершили проверку авторизации и пользователя нет - редирект на страницу входа
+    if (!loading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [loading, user, navigate]);
 
-    // Подписываемся на изменения авторизации
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate('/auth', { replace: true });
-      } else {
-        setChecking(false);
-      }
-    });
+  if (loading) {
+    return (
+      <Center mih={200}>
+        <Loader />
+      </Center>
+    );
+  }
 
-    return () => sub.subscription.unsubscribe();
-  }, [navigate]);
-
-  if (checking) {
+  // Если нет пользователя, показываем загрузчик (редирект произойдет в useEffect)
+  if (!user) {
     return (
       <Center mih={200}>
         <Loader />

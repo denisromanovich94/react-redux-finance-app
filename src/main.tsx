@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/ru';
 import { CustomThemeProvider } from './shared/theme/ThemeProvider';
+import { AuthProvider } from './shared/auth/AuthContext';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('ru');
@@ -26,7 +27,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <CustomThemeProvider>
         <Notifications />
         <BrowserRouter>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </BrowserRouter>
       </CustomThemeProvider>
     </Provider>
