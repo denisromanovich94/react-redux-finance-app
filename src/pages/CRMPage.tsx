@@ -17,6 +17,7 @@ import {
 import LeadCard from '../features/crm/ui/LeadCard';
 import LeadModal from '../features/crm/ui/LeadModal';
 import type { Lead, LeadStatus, CreateLeadInput, UpdateLeadInput } from '../features/crm/types';
+import { formatCurrencyAmount } from '../features/currency/utils';
 
 export default function CRMPage() {
   const dispatch = useAppDispatch();
@@ -115,7 +116,7 @@ export default function CRMPage() {
           />
           <StatCard
             label="Общая выручка"
-            value={`${stats.totalValue.toLocaleString('ru-RU')} ₽`}
+            value={formatCurrencyAmount(stats.totalValue, 'RUB')}
             color="teal"
           />
         </SimpleGrid>

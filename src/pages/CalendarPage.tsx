@@ -1,25 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../app/store';
-import { fetchSessions } from '../features/timetracker/timeTrackerThunks';
+import { fetchSessions, fetchProjects } from '../features/timetracker/timeTrackerThunks';
+import { loadClients } from '../features/clients/clientsSlice';
 import { Calendar } from '@mantine/dates';
 import { Modal, Text, Title, Stack, Badge, Divider, Card, Timeline, Group } from '@mantine/core';
-import { IconClock, IconActivity } from '@tabler/icons-react';
+import { IconClock, IconActivity, IconBriefcase, IconUser } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import dayjs from 'dayjs';
-
-type TimeLog = { hour?: string; endTime?: string; activity: string; activityType?: string };
-type Session = {
-  id: string;
-  start_time: string;
-  end_time: string | null;
-  duration_seconds?: number;
-  logs?: TimeLog[];
-};
+import type { TimeSession } from '../features/timetracker/types';
 
 export default function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const sessions = useSelector((state: RootState) => state.timeTracker.allSessions) as Session[];
+  const sessions = useSelector((state: RootState) => state.timeTracker.allSessions);
+  const projects = useSelector((state: RootState) => state.timeTracker.projects);
+  const clients = useSelector((state: RootState) => state.clients.items);
   const isSmall = useMediaQuery('(max-width: 48em)');
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -27,6 +22,8 @@ export default function CalendarPage() {
 
   useEffect(() => {
     dispatch(fetchSessions());
+    dispatch(fetchProjects());
+    dispatch(loadClients());
   }, [dispatch]);
 
   const sessionDates = sessions.map((s) => dayjs(s.start_time).format('YYYY-MM-DD'));
@@ -170,6 +167,9 @@ export default function CalendarPage() {
               const minutes = durationMinutes % 60;
               const durationText = hours > 0 ? `${hours} ч ${minutes} мин` : `${minutes} мин`;
 
+              const project = projects.find(p => p.id === s.project_id);
+              const client = clients.find(c => c.id === s.client_id);
+
               return (
                 <Card key={s.id} shadow="sm" padding={isSmall ? 'sm' : 'lg'} radius="md" withBorder>
                   <Group justify="space-between" mb="md" wrap="wrap">
@@ -183,6 +183,40 @@ export default function CalendarPage() {
                       {durationText}
                     </Badge>
                   </Group>
+
+                  {(project || client) && (
+                    <Group gap="xs" mb="sm">
+                      {project && (
+                        <Badge
+                          size={isSmall ? 'sm' : 'md'}
+                          variant="light"
+                          leftSection={
+                            <div
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                backgroundColor: project.color,
+                              }}
+                            />
+                          }
+                        >
+                          <Group gap={4}>
+                            <IconBriefcase size={12} />
+                            {project.name}
+                          </Group>
+                        </Badge>
+                      )}
+                      {client && (
+                        <Badge size={isSmall ? 'sm' : 'md'} variant="light" color="blue">
+                          <Group gap={4}>
+                            <IconUser size={12} />
+                            {client.name}
+                          </Group>
+                        </Badge>
+                      )}
+                    </Group>
+                  )}
 
                   {s.logs && s.logs.length > 0 && (
                     <>

@@ -6,6 +6,7 @@ import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
 import Clients from './pages/Clients';
+import Projects from './pages/Projects';
 import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { signOut } from './shared/api/auth';
@@ -133,15 +134,22 @@ export default function App() {
             active={location.pathname.startsWith('/clients')}
             onClick={toggle}
           />
+          <NavLink
+            label="Проекты"
+            component={Link}
+            to="/projects"
+            active={location.pathname.startsWith('/projects')}
+            onClick={toggle}
+          />
 <NavLink
-            label="Тайм трекер (beta)"
+            label="Тайм трекер"
             component={Link}
             to="/tracker"
             active={location.pathname.startsWith('/tracker')}
             onClick={toggle}
           />
 <NavLink
-  label="Календарь (beta)"
+  label="Календарь"
   component={Link}
   to="/calendar"
   active={location.pathname.startsWith('/calendar')}
@@ -174,6 +182,7 @@ export default function App() {
           <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
           <Route path="/clients" element={<RequireAuth><Clients /></RequireAuth>} />
+          <Route path="/projects" element={<RequireAuth><Projects /></RequireAuth>} />
 <Route path="/todos" element={<RequireAuth><TodosPage /></RequireAuth>} />
 <Route path="/crm" element={<RequireAuth><CRMPage /></RequireAuth>} />
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />

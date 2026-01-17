@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { supabase } from '../../shared/api/supabase';
 import type { RootState } from '../../app/store';
 import { selectElapsedSeconds } from './selectors';
-import type { TimeSession, HourLog, Interval } from './types';
+import type { TimeSession, HourLog, Interval, TrackerProject } from './types';
 import { getUserId } from '../../shared/api/auth';
+import { timeTrackerApi } from './timeTrackerApi';
 
 
 export const saveSession = createAsyncThunk<
@@ -30,23 +30,21 @@ export const saveSession = createAsyncThunk<
     }));
 
     const payload: Partial<TimeSession> = {
-      user_id: userId,
       start_time: tracker.startTime,
       end_time: tracker.endTime,
       duration_seconds: duration,
       intervals: tracker.intervals as Interval[],
       logs,
+      project_id: tracker.currentProjectId,
+      client_id: tracker.currentClientId,
+      tags: tracker.currentTags,
     };
 
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) return rejectWithValue(error.message);
-
-    return data as TimeSession;
+    try {
+      return await timeTrackerApi.createSession(userId, payload);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to save session');
+    }
   }
 );
 
@@ -60,14 +58,114 @@ export const fetchSessions = createAsyncThunk<
     const userId = await getUserId();
     if (!userId) return rejectWithValue('Not authenticated');
 
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('start_time', { ascending: false });
+    try {
+      return await timeTrackerApi.fetchSessions(userId);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch sessions');
+    }
+  }
+);
 
-    if (error) return rejectWithValue(error.message);
+export const updateSessionThunk = createAsyncThunk<
+  TimeSession,
+  { id: string; updates: Partial<TimeSession> },
+  { rejectValue: string }
+>(
+  'timeTracker/updateSession',
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      return await timeTrackerApi.updateSession(id, updates);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update session');
+    }
+  }
+);
 
-    return (data ?? []) as TimeSession[];
+export const deleteSessionThunk = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
+  'timeTracker/deleteSession',
+  async (id, { rejectWithValue }) => {
+    try {
+      await timeTrackerApi.deleteSession(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to delete session');
+    }
+  }
+);
+
+export const fetchProjects = createAsyncThunk<
+  TrackerProject[],
+  void,
+  { rejectValue: string }
+>(
+  'timeTracker/fetchProjects',
+  async (_, { rejectWithValue }) => {
+    const userId = await getUserId();
+    if (!userId) return rejectWithValue('Not authenticated');
+
+    try {
+      return await timeTrackerApi.fetchProjects(userId);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch projects');
+    }
+  }
+);
+
+export const createProjectThunk = createAsyncThunk<
+  TrackerProject,
+  {
+    name: string;
+    color: string;
+    description?: string;
+    client_id?: string | null;
+    category_id?: string | null;
+  },
+  { rejectValue: string }
+>(
+  'timeTracker/createProject',
+  async (projectData, { rejectWithValue }) => {
+    const userId = await getUserId();
+    if (!userId) return rejectWithValue('Not authenticated');
+
+    try {
+      return await timeTrackerApi.createProject(userId, projectData);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to create project');
+    }
+  }
+);
+
+export const updateProjectThunk = createAsyncThunk<
+  TrackerProject,
+  { id: string; updates: Partial<TrackerProject> },
+  { rejectValue: string }
+>(
+  'timeTracker/updateProject',
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      return await timeTrackerApi.updateProject(id, updates);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to update project');
+    }
+  }
+);
+
+export const deleteProjectThunk = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
+  'timeTracker/deleteProject',
+  async (id, { rejectWithValue }) => {
+    try {
+      await timeTrackerApi.deleteProject(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to delete project');
+    }
   }
 );

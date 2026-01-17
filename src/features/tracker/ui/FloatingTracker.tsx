@@ -1,12 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../app/store';
-import { Paper, Button, Textarea, Stack, Text, Group, Select } from '@mantine/core';
-import { stopSession, setLog } from '../../timetracker/timeTrackerSlice';
-import { saveSession } from '../../timetracker/timeTrackerThunks';
-import { showNotification } from '@mantine/notifications';
+import { Paper, Button, Textarea, Stack, Text, Group, Select, ActionIcon } from '@mantine/core';
+import {
+  stopSession,
+  setLog,
+  pauseSession,
+  resumeSession,
+  setCurrentActivity,
+  setCurrentActivityType,
+  setCurrentProject,
+  setCurrentClient,
+} from '../../timetracker/timeTrackerSlice';
+import { saveSession, fetchProjects } from '../../timetracker/timeTrackerThunks';
+import { loadClients } from '../../../features/clients/clientsSlice';
+import {
+  selectCurrentActivity,
+  selectCurrentActivityType,
+  selectCurrentProjectId,
+  selectCurrentClientId,
+  selectElapsedSeconds,
+  selectCanPause,
+  selectCanResume,
+  selectProjects,
+} from '../../timetracker/selectors';
+import { notifications } from '@mantine/notifications';
+import { IconChevronUp, IconChevronDown } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import type { HourLog } from '../../timetracker/types';
+import { useActivityReminder } from '../../timetracker/hooks/useActivityReminder';
 
 const activityOptions = [
   { value: 'работал', label: 'Работал' },
@@ -17,43 +39,52 @@ const activityOptions = [
 export default function FloatingTracker() {
   const dispatch = useDispatch<AppDispatch>();
   const tracker = useSelector((state: RootState) => state.timeTracker);
+  const activity = useSelector(selectCurrentActivity);
+  const activityType = useSelector(selectCurrentActivityType);
+  const projectId = useSelector(selectCurrentProjectId);
+  const clientId = useSelector(selectCurrentClientId);
+  const canPause = useSelector(selectCanPause);
+  const canResume = useSelector(selectCanResume);
+  const projects = useSelector(selectProjects);
+  const clients = useSelector((state: RootState) => state.clients.items);
 
-  const [activity, setActivity] = useState(() => {
-    return localStorage.getItem('currentActivity') || '';
-  });
-  const [activityType, setActivityType] = useState<'работал' | 'общался с клиентами' | 'писал отклики'>(() => {
-    const stored = localStorage.getItem('currentActivityType');
-    if (stored === 'общался с клиентами' || stored === 'писал отклики') return stored;
-    return 'работал';
-  });
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [displayedSeconds, setDisplayedSeconds] = useState(0);
 
-  // Синхронизация с localStorage
+  // Activity reminder hook
+  useActivityReminder();
+
   useEffect(() => {
-    localStorage.setItem('currentActivity', activity);
-  }, [activity]);
+    dispatch(fetchProjects());
+    dispatch(loadClients());
+  }, [dispatch]);
 
+  // Update displayed time every second
   useEffect(() => {
-    localStorage.setItem('currentActivityType', activityType);
-  }, [activityType]);
+    const updateTime = () => {
+      if (tracker.status === 'running' || tracker.status === 'paused') {
+        const intervals = tracker.intervals || [];
+        let total = 0;
+        for (const iv of intervals) {
+          if (iv.end) {
+            const start = new Date(iv.start).getTime();
+            const end = new Date(iv.end).getTime();
+            total += Math.floor((end - start) / 1000);
+          } else {
+            const start = new Date(iv.start).getTime();
+            const now = Date.now();
+            total += Math.floor((now - start) / 1000);
+          }
+        }
+        setDisplayedSeconds(total);
+      }
+    };
 
-  // Вычисляем прошедшее время
-  useEffect(() => {
-    if (tracker.status !== 'running' || !tracker.startTime) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const now = dayjs();
-      const start = dayjs(tracker.startTime);
-      const diff = now.diff(start, 'second');
-      setElapsedSeconds(diff);
-    }, 1000);
-
+    updateTime(); // Initial update
+    const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [tracker.status, tracker.startTime]);
+  }, [tracker.status, tracker.intervals]);
 
-  // Форматирование времени
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -67,7 +98,6 @@ export default function FloatingTracker() {
     const endTime = dayjs().toISOString();
     const startHour = dayjs(tracker.startTime).toISOString();
 
-    // Создаем лог
     const log: HourLog = {
       hour: startHour,
       endTime,
@@ -75,86 +105,120 @@ export default function FloatingTracker() {
       activityType,
     };
 
-    // Сохраняем лог в Redux state ПЕРЕД остановкой
     dispatch(setLog(log));
-
-    // Останавливаем трекер (обновляет endTime)
     dispatch(stopSession());
 
-    // Сохраняем сессию на сервер
     try {
       await dispatch(saveSession()).unwrap();
+      notifications.show({
+        title: 'Успех',
+        message: `Сессия сохранена (${formatTime(displayedSeconds)})`,
+        color: 'green',
+      });
     } catch (err) {
-      showNotification({
+      notifications.show({
         title: 'Ошибка',
         message: String(err || 'Не удалось сохранить сессию'),
         color: 'red',
       });
     }
-
-    // Очищаем поля и localStorage
-    setActivity('');
-    setActivityType('работал');
-    localStorage.removeItem('currentActivity');
-    localStorage.removeItem('currentActivityType');
   };
 
-  // Не показываем виджет если трекер не запущен
-  if (tracker.status !== 'running') {
+  if (tracker.status !== 'running' && tracker.status !== 'paused') {
     return null;
   }
 
   return (
     <Paper
       shadow="xl"
-      p="md"
+      p={isCollapsed ? 'xs' : 'md'}
       style={{
         position: 'fixed',
         bottom: 20,
         right: 20,
-        width: 350,
+        width: isCollapsed ? 200 : 350,
         zIndex: 1000,
         border: '2px solid #228be6',
+        transition: 'width 0.2s ease',
       }}
     >
       <Stack gap="sm">
         <Group justify="space-between">
-          <Text fw={600} size="sm">Тайм-трекер</Text>
-          <Text c="blue" fw={700}>{formatTime(elapsedSeconds)}</Text>
+          <Text fw={600} size="sm">
+            Тайм-трекер
+          </Text>
+          <Group gap="xs">
+            <Text c="blue" fw={700}>
+              {formatTime(displayedSeconds)}
+              {tracker.status === 'paused' && ' ⏸'}
+            </Text>
+            <ActionIcon variant="subtle" onClick={() => setIsCollapsed(!isCollapsed)}>
+              {isCollapsed ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+            </ActionIcon>
+          </Group>
         </Group>
 
-        <Select
-          data={activityOptions}
-          value={activityType}
-          onChange={(val) => {
-            if (!val) return;
-            if (
-              val === 'работал' ||
-              val === 'общался с клиентами' ||
-              val === 'писал отклики'
-            ) {
-              setActivityType(val);
-            }
-          }}
-          size="xs"
-        />
+        {!isCollapsed && (
+          <>
+            <Select
+              data={projects.map((p) => ({ value: p.id, label: p.name }))}
+              value={projectId || ''}
+              onChange={(val) => dispatch(setCurrentProject(val || null))}
+              placeholder="Выберите проект"
+              size="xs"
+              clearable
+            />
 
-        <Textarea
-          placeholder="Что делали в этой сессии?"
-          value={activity}
-          onChange={(e) => setActivity(e.currentTarget.value)}
-          minRows={2}
-          size="xs"
-        />
+            <Select
+              data={clients.map((c) => ({ value: c.id, label: c.name }))}
+              value={clientId || ''}
+              onChange={(val) => dispatch(setCurrentClient(val || null))}
+              placeholder="Выберите клиента"
+              size="xs"
+              clearable
+            />
 
-        <Button
-          color="red"
-          onClick={handleStop}
-          size="xs"
-          fullWidth
-        >
-          Остановить
-        </Button>
+            <Select
+              data={activityOptions}
+              value={activityType}
+              onChange={(val) => {
+                if (!val) return;
+                if (
+                  val === 'работал' ||
+                  val === 'общался с клиентами' ||
+                  val === 'писал отклики'
+                ) {
+                  dispatch(setCurrentActivityType(val));
+                }
+              }}
+              size="xs"
+            />
+
+            <Textarea
+              placeholder="Что делали в этой сессии?"
+              value={activity}
+              onChange={(e) => dispatch(setCurrentActivity(e.currentTarget.value))}
+              minRows={2}
+              size="xs"
+            />
+
+            <Group grow>
+              {canPause && (
+                <Button color="orange" onClick={() => dispatch(pauseSession())} size="xs">
+                  Пауза
+                </Button>
+              )}
+              {canResume && (
+                <Button color="green" onClick={() => dispatch(resumeSession())} size="xs">
+                  Продолжить
+                </Button>
+              )}
+              <Button color="red" onClick={handleStop} size="xs">
+                Остановить
+              </Button>
+            </Group>
+          </>
+        )}
       </Stack>
     </Paper>
   );

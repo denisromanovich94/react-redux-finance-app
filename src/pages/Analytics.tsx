@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center, ActionIcon, Paper, Box } from '@mantine/core';
+import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center, ActionIcon, Paper, Box, useMantineTheme } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import { PieChart } from '@mantine/charts';
@@ -35,6 +35,7 @@ type TrendWithExtras = TrendDatum & {
 export default function Analytics() {
   const dispatch = useAppDispatch();
   const { colorScheme } = useMantineColorScheme();
+  const theme = useMantineTheme();
   const isDark = colorScheme === 'dark';
   const isSmall = useMediaQuery('(max-width: 48em)');
   const loading = useAppSelector((s) => s.transactions.loading);
@@ -312,18 +313,24 @@ const hourlyRateForCategory = useMemo(() => {
             {/* Desktop - Pie Chart */}
             {!isSmall && (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
-                <PieChart
-                  data={convertedIncomeData}
-                  withLabels
-                  withTooltip
-                  size={320}
-                  labelsType="percent"
-                  pieProps={{
-                    onClick: (data: { name?: string }) => {
-                      if (data?.name) openCatModal(data.name, 'income');
-                    },
-                  }}
-                />
+                {convertedIncomeData.length === 0 ? (
+                  <Text c="dimmed" size="sm">Нет доходов за выбранный период</Text>
+                ) : (
+                  <PieChart
+                    data={convertedIncomeData}
+                    withLabels
+                    withTooltip
+                    size={340}
+                    labelsType="percent"
+                    strokeWidth={1}
+                    tooltipDataSource="segment"
+                    pieProps={{
+                      onClick: (data: { name?: string }) => {
+                        if (data?.name) openCatModal(data.name, 'income');
+                      },
+                    }}
+                  />
+                )}
               </div>
             )}
 
@@ -376,18 +383,24 @@ const hourlyRateForCategory = useMemo(() => {
             {/* Desktop - Pie Chart */}
             {!isSmall && (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '350px' }}>
-                <PieChart
-                  data={convertedExpenseData}
-                  withLabels
-                  withTooltip
-                  size={320}
-                  labelsType="percent"
-                  pieProps={{
-                    onClick: (data: { name?: string }) => {
-                      if (data?.name) openCatModal(data.name, 'expense');
-                    },
-                  }}
-                />
+                {convertedExpenseData.length === 0 ? (
+                  <Text c="dimmed" size="sm">Нет расходов за выбранный период</Text>
+                ) : (
+                  <PieChart
+                    data={convertedExpenseData}
+                    withLabels
+                    withTooltip
+                    size={340}
+                    labelsType="percent"
+                    strokeWidth={1}
+                    tooltipDataSource="segment"
+                    pieProps={{
+                      onClick: (data: { name?: string }) => {
+                        if (data?.name) openCatModal(data.name, 'expense');
+                      },
+                    }}
+                  />
+                )}
               </div>
             )}
 
@@ -460,31 +473,87 @@ const hourlyRateForCategory = useMemo(() => {
                   </ActionIcon>
                 </Group>
               </Group>
-              <ResponsiveContainer width="100%" height={350}>
-                <ComposedChart data={trendWithBalance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#ccc'} />
-                  <XAxis dataKey="month" stroke={isDark ? '#aaa' : '#666'} />
-                  <YAxis stroke={isDark ? '#aaa' : '#666'} />
+              <ResponsiveContainer width="100%" height={380}>
+                <ComposedChart
+                  data={trendWithBalance}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={theme.colors.red[6]} stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor={theme.colors.red[6]} stopOpacity={0.7}/>
+                    </linearGradient>
+                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={theme.colors.teal[6]} stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor={theme.colors.teal[6]} stopOpacity={0.7}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDark ? '#2d2d2d' : '#e8e8e8'}
+                    strokeOpacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={isDark ? '#909296' : '#868e96'}
+                    style={{ fontSize: '12px' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke={isDark ? '#909296' : '#868e96'}
+                    style={{ fontSize: '12px' }}
+                    tickLine={false}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  />
                   <Tooltip
                     formatter={(value: number) => formatCurrencyAmount(value, displayCurrency)}
                     contentStyle={{
-                      backgroundColor: isDark ? '#25262b' : '#fff',
-                      border: `1px solid ${isDark ? '#373A40' : '#e0e0e0'}`,
-                      borderRadius: '4px',
+                      backgroundColor: isDark ? '#1a1b1e' : '#fff',
+                      border: `1px solid ${isDark ? '#373A40' : '#dee2e6'}`,
+                      borderRadius: '12px',
+                      boxShadow: isDark
+                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                        : '0 4px 12px rgba(0, 0, 0, 0.1)',
+                      padding: '12px 16px',
                       color: isDark ? '#C1C2C5' : '#000',
                     }}
                     labelStyle={{
                       color: isDark ? '#C1C2C5' : '#000',
+                      fontWeight: 600,
+                      marginBottom: '8px',
                     }}
+                    cursor={{ fill: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }}
                   />
                   <Legend
                     wrapperStyle={{
+                      paddingTop: '16px',
                       color: isDark ? '#C1C2C5' : '#000',
                     }}
+                    iconType="circle"
                   />
-                  <Bar dataKey="expenses" barSize={20} fill="#f72a2aff" name="Расходы" />
-                  <Bar dataKey="income" barSize={20} fill="#25e93fff" name="Доходы" />
-                  <Line type="monotone" dataKey="balance" stroke="#805ad5" name="Баланс" />
+                  <Bar
+                    dataKey="expenses"
+                    barSize={28}
+                    fill="url(#colorExpenses)"
+                    radius={[8, 8, 0, 0]}
+                    name="Расходы"
+                  />
+                  <Bar
+                    dataKey="income"
+                    barSize={28}
+                    fill="url(#colorIncome)"
+                    radius={[8, 8, 0, 0]}
+                    name="Доходы"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="balance"
+                    stroke={theme.colors[theme.primaryColor][6]}
+                    strokeWidth={3}
+                    dot={{ fill: theme.colors[theme.primaryColor][6], r: 5 }}
+                    activeDot={{ r: 7 }}
+                    name="Баланс"
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </Card>
@@ -720,7 +789,7 @@ const hourlyRateForCategory = useMemo(() => {
   <>
     {catModal.type === 'income' && (
       <Text mb="sm" fw={500}>
-        Стоимость работы в час: {hourlyRateForCategory.toFixed(2)}
+        Стоимость работы в час: {formatCurrencyAmount(hourlyRateForCategory, displayCurrency)}
       </Text>
     )}
 
@@ -740,7 +809,7 @@ const hourlyRateForCategory = useMemo(() => {
               <Table.Td>{t.date}</Table.Td>
               <Table.Td ta="right">
                 <Text c={t.amount < 0 ? 'red' : 'green'}>
-                  {t.amount.toLocaleString('ru-RU')}
+                  {formatCurrencyAmount(t.amount, displayCurrency)}
                 </Text>
               </Table.Td>
               <Table.Td
@@ -771,7 +840,7 @@ const hourlyRateForCategory = useMemo(() => {
                 fw={700}
                 c={t.amount < 0 ? 'red' : 'green'}
               >
-                {t.amount.toLocaleString('ru-RU')}
+                {formatCurrencyAmount(t.amount, displayCurrency)}
               </Text>
             </Group>
             {t.comment && (

@@ -3,6 +3,7 @@ import { Card, Text, Badge, Group, ActionIcon, Menu, Stack, Button, Modal, Texta
 import { IconDots, IconEdit, IconTrash, IconMail, IconPhone, IconBuilding } from '@tabler/icons-react';
 import type { Lead, LeadStatus } from '../types';
 import dayjs from '../../../shared/dayjs';
+import { formatCurrencyAmount } from '../../currency/utils';
 
 interface LeadCardProps {
   lead: Lead;
@@ -138,12 +139,12 @@ export default function LeadCard({ lead, onEdit, onDelete, onStatusChange }: Lea
           <Text size="sm" c="dimmed" fw={500}>
             Потенциальная ценность: {
               lead.value_min && lead.value_max
-                ? `${lead.value_min.toLocaleString('ru-RU')} - ${lead.value_max.toLocaleString('ru-RU')} ₽`
+                ? `${formatCurrencyAmount(lead.value_min, 'RUB')} - ${formatCurrencyAmount(lead.value_max, 'RUB')}`
                 : lead.value_min
-                  ? `от ${lead.value_min.toLocaleString('ru-RU')} ₽`
+                  ? `от ${formatCurrencyAmount(lead.value_min, 'RUB')}`
                   : lead.value_max
-                    ? `до ${lead.value_max.toLocaleString('ru-RU')} ₽`
-                    : `${lead.value?.toLocaleString('ru-RU')} ₽`
+                    ? `до ${formatCurrencyAmount(lead.value_max, 'RUB')}`
+                    : formatCurrencyAmount(lead.value ?? 0, 'RUB')
             }
           </Text>
         )}

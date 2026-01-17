@@ -274,7 +274,7 @@ export default function Overview() {
         <Grid.Col span={{ base: 12, sm: 6, lg: 4 }} style={{ display: 'flex' }}>
           <StatCard
             label="Стоимость работы в час"
-            value={monthlyHourlyRate.toFixed(2)}
+            value={formatCurrencyAmount(monthlyHourlyRate, displayCurrency)}
             color="yellow"
             icon={<IconCurrencyDollar size={18} />}
           />
