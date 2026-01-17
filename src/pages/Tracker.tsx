@@ -25,9 +25,6 @@ import {
   selectCurrentProjectId,
   selectCurrentClientId,
   selectTodayLogs,
-  selectCanPause,
-  selectCanResume,
-  selectElapsedSeconds,
   selectProjects,
 } from '../features/timetracker/selectors';
 import { loadClients } from '../features/clients/clientsSlice';
@@ -46,8 +43,6 @@ export default function Tracker() {
   const currentProjectId = useSelector(selectCurrentProjectId);
   const currentClientId = useSelector(selectCurrentClientId);
   const currentDayLogs = useSelector(selectTodayLogs);
-  const canPause = useSelector(selectCanPause);
-  const canResume = useSelector(selectCanResume);
   const allSessions = useSelector((state: RootState) => state.timeTracker.allSessions);
   const projects = useSelector(selectProjects);
   const clients = useSelector((state: RootState) => state.clients.items);

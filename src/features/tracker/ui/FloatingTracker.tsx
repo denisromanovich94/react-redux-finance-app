@@ -19,7 +19,6 @@ import {
   selectCurrentActivityType,
   selectCurrentProjectId,
   selectCurrentClientId,
-  selectElapsedSeconds,
   selectCanPause,
   selectCanResume,
   selectProjects,

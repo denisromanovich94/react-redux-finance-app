@@ -8,7 +8,6 @@ import { Modal, Text, Title, Stack, Badge, Divider, Card, Timeline, Group } from
 import { IconClock, IconActivity, IconBriefcase, IconUser } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import dayjs from 'dayjs';
-import type { TimeSession } from '../features/timetracker/types';
 
 export default function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
