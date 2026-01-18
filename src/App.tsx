@@ -11,12 +11,13 @@ import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconSun, IconMoon } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconHeart } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import TodosPage from './pages/TodosPage';
 import CRMPage from './pages/CRMPage';
 import Settings from './pages/Settings';
+import DonatePage from './pages/DonatePage';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
@@ -158,6 +159,15 @@ export default function App() {
                 active={location.pathname.startsWith('/settings')}
                 onClick={toggle}
               />
+              <NavLink
+                label="Поддержать"
+                component={Link}
+                to="/donate"
+                active={location.pathname.startsWith('/donate')}
+                onClick={toggle}
+                leftSection={<IconHeart size={16} />}
+                c="pink"
+              />
               <Group justify="flex-start" p="sm">
                 <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
                   Выйти
@@ -184,6 +194,7 @@ export default function App() {
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
 <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+<Route path="/donate" element={<RequireAuth><DonatePage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
