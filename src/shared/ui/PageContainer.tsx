@@ -7,7 +7,7 @@ type Props = {
 
 export default function PageContainer({ children, maxWidth = 1200 }: Props) {
   return (
-    <Container size={maxWidth} py="md">
+    <Container style={{ maxWidth }} py="md">
       {children}
     </Container>
   );

@@ -1,21 +1,15 @@
-import { Modal, TextInput, Button, Stack, Group, LoadingOverlay, Select, Divider } from '@mantine/core';
+import { TextInput, Button, Stack, Group, LoadingOverlay } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../hooks';
-import { fetchProfile, updateProfile, createProfile } from '../profileSlice';
+import { fetchProfile, updateProfile, createProfile } from '../../profile/profileSlice';
 import { useAuth } from '../../../shared/auth/AuthContext';
-import type { ThemeColor } from '../types';
 
-interface ProfileModalProps {
-  opened: boolean;
-  onClose: () => void;
-}
-
-export function ProfileModal({ opened, onClose }: ProfileModalProps) {
+export function ProfileSection() {
   const dispatch = useAppDispatch();
   const { profile, loading } = useAppSelector((state) => state.profile);
-  const { user } = useAuth(); // Используем централизованный AuthContext
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
 
   const form = useForm({
@@ -26,39 +20,30 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
       phone: '',
       telegram: '',
       position: '',
-      theme_color: 'blue' as ThemeColor,
     },
   });
 
-  // Загрузить профиль при открытии модалки
+  // Загрузка профиля при монтировании (только если еще не загружен)
   useEffect(() => {
-    if (opened && user) {
+    if (user?.id && !profile) {
       const loadProfile = async () => {
-        if (user.email) {
-          form.setFieldValue('email', user.email);
-        }
-
-        if (user.id && user.email) {
-          try {
-            await dispatch(fetchProfile(user.id)).unwrap();
-          } catch {
-            // Если профиль не найден, пытаемся создать его
-            console.log('Profile not found, attempting to create new one');
+        try {
+          await dispatch(fetchProfile(user.id)).unwrap();
+        } catch {
+          if (user.email) {
             try {
               await dispatch(createProfile({ userId: user.id, email: user.email })).unwrap();
-            } catch (createError) {
-              // Игнорируем ошибки создания профиля (может уже существовать)
-              console.error('Error creating profile:', createError);
+            } catch (err) {
+              console.error('Error creating profile:', err);
             }
           }
         }
       };
       loadProfile();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opened, user?.id, dispatch]);
+  }, [user?.id, profile, dispatch, user?.email]);
 
-  // Заполнить форму данными профиля
+  // Заполнение формы
   const updateFormValues = useCallback(() => {
     if (profile) {
       form.setValues({
@@ -68,7 +53,6 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
         phone: profile.phone || '',
         telegram: profile.telegram || '',
         position: profile.position || '',
-        theme_color: profile.theme_color || 'blue',
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +81,6 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
             phone: values.phone,
             telegram: values.telegram,
             position: values.position,
-            theme_color: values.theme_color,
           },
         })
       ).unwrap();
@@ -117,58 +100,8 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
     }
   };
 
-  const handleClose = () => {
-    setIsEditing(false);
-    onClose();
-  };
-
-  const handleThemeColorChange = async (value: string | null) => {
-    if (!value) return;
-
-    try {
-      if (!user?.id) {
-        notifications.show({
-          color: 'red',
-          message: 'Ошибка: пользователь не авторизован',
-        });
-        return;
-      }
-
-      // Сразу обновляем форму
-      form.setFieldValue('theme_color', value as ThemeColor);
-
-      // Сохраняем в базу данных
-      await dispatch(
-        updateProfile({
-          userId: user.id,
-          updates: {
-            theme_color: value as ThemeColor,
-          },
-        })
-      ).unwrap();
-
-      notifications.show({
-        color: 'teal',
-        message: 'Цветовая тема обновлена',
-      });
-    } catch (err) {
-      console.error('Error updating theme color:', err);
-      notifications.show({
-        color: 'red',
-        message: 'Ошибка при обновлении темы',
-      });
-    }
-  };
-
   return (
-    <Modal
-      opened={opened}
-      onClose={handleClose}
-      title="Профиль пользователя"
-      size="md"
-      styles={{ inner: { right: 0, left: 0 } }}
-      centered
-    >
+    <div style={{ position: 'relative', maxWidth: 600 }}>
       <LoadingOverlay visible={loading} />
 
       <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -215,53 +148,30 @@ export function ProfileModal({ opened, onClose }: ProfileModalProps) {
             {...form.getInputProps('position')}
           />
 
-          <Group justify="flex-end" mt="md">
+          <Group justify="flex-start" mt="md">
             {!isEditing ? (
               <Button onClick={() => setIsEditing(true)}>
-                Настроить
+                Редактировать
               </Button>
             ) : (
               <>
+                <Button type="submit" loading={loading}>
+                  Сохранить
+                </Button>
                 <Button
                   variant="subtle"
                   onClick={() => {
                     setIsEditing(false);
-                    if (profile) {
-                      form.setValues({
-                        email: profile.email || '',
-                        first_name: profile.first_name || '',
-                        last_name: profile.last_name || '',
-                        phone: profile.phone || '',
-                        telegram: profile.telegram || '',
-                        position: profile.position || '',
-                      });
-                    }
+                    updateFormValues();
                   }}
                 >
                   Отмена
                 </Button>
-                <Button type="submit" loading={loading}>
-                  Сохранить
-                </Button>
               </>
             )}
           </Group>
-
-          <Divider my="sm" />
-
-          <Select
-            label="Цветовая тема"
-            placeholder="Выберите цветовую тему"
-            data={[
-              { value: 'blue', label: '🔵 Синяя' },
-              { value: 'green', label: '🟢 Зеленая' },
-              { value: 'orange', label: '🟠 Оранжевая' },
-            ]}
-            value={form.values.theme_color}
-            onChange={handleThemeColorChange}
-          />
         </Stack>
       </form>
-    </Modal>
+    </div>
   );
 }

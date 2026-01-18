@@ -11,21 +11,20 @@ import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconSun, IconMoon, IconSettings } from '@tabler/icons-react';
+import { IconSun, IconMoon } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import TodosPage from './pages/TodosPage';
 import CRMPage from './pages/CRMPage';
+import Settings from './pages/Settings';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
-import { ProfileModal } from './features/profile/ui/ProfileModal';
 import { fetchProfile } from './features/profile/profileSlice';
 import { useAuth } from './shared/auth/AuthContext';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
-  const [profileOpened, { open: openProfile, close: closeProfile }] = useDisclosure(false);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -86,18 +85,6 @@ export default function App() {
       <Title order={3}>Finance App</Title>
     </Group>
     <Group>
-      {user && (
-        <ActionIcon
-          variant="default"
-          size="lg"
-          radius="xl"
-          aria-label="Настройки профиля"
-          onClick={openProfile}
-          title="Профиль"
-        >
-          <IconSettings size={18} />
-        </ActionIcon>
-      )}
       <ThemeToggle />
     </Group>
   </Group>
@@ -163,11 +150,20 @@ export default function App() {
               active={location.pathname.startsWith('/auth')}
             />
           ) : (
-            <Group justify="flex-start" p="sm">
-              <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
-                Выйти
-              </Button>
-            </Group>
+            <>
+              <NavLink
+                label="Настройки"
+                component={Link}
+                to="/settings"
+                active={location.pathname.startsWith('/settings')}
+                onClick={toggle}
+              />
+              <Group justify="flex-start" p="sm">
+                <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
+                  Выйти
+                </Button>
+              </Group>
+            </>
           )}
         </ScrollArea>
       </AppShell.Navbar>
@@ -187,13 +183,12 @@ export default function App() {
 <Route path="/crm" element={<RequireAuth><CRMPage /></RequireAuth>} />
 <Route path="/tracker" element={<RequireAuth><Tracker /></RequireAuth>} />
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
+<Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
         {user && <FloatingTracker />}
       </AppShell.Main>
-
-      <ProfileModal opened={profileOpened} onClose={closeProfile} />
     </AppShell>
   );
 }
