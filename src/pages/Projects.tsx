@@ -159,7 +159,7 @@ export default function Projects() {
             const category = categories.find(c => c.id === project.category_id);
 
             return (
-              <Grid.Col key={project.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
+              <Grid.Col key={project.id} span={12}>
                 <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
                   <Stack gap="sm" style={{ flex: 1 }}>
                     {/* Header: Color + Name + Actions */}

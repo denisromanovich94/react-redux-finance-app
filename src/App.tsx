@@ -123,7 +123,7 @@ export default function App() {
             onClick={toggle}
           />
           <NavLink
-            label="Проекты"
+            label="Проекты (beta)"
             component={Link}
             to="/projects"
             active={location.pathname.startsWith('/projects')}
@@ -141,6 +141,13 @@ export default function App() {
   component={Link}
   to="/calendar"
   active={location.pathname.startsWith('/calendar')}
+  onClick={toggle}
+/>
+<NavLink
+  label="Задачи (beta)"
+  component={Link}
+  to="/todos"
+  active={location.pathname.startsWith('/todos')}
   onClick={toggle}
 />
           {!user ? (
