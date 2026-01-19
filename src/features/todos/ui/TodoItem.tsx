@@ -1,11 +1,12 @@
 import { Card, Checkbox, Text, Badge, Group, ActionIcon, Menu, Progress } from '@mantine/core';
-import { IconDots, IconEdit, IconTrash, IconClock, IconFlag, IconTag } from '@tabler/icons-react';
-import type { Todo, TodoCategory } from '../types';
+import { IconDots, IconEdit, IconTrash, IconClock, IconFlag, IconBriefcase } from '@tabler/icons-react';
+import type { Todo } from '../types';
+import type { TrackerProject } from '../../timetracker/types';
 import dayjs from '../../../shared/dayjs';
 
 interface TodoItemProps {
   todo: Todo;
-  categories: TodoCategory[];
+  projects: TrackerProject[];
   onToggle: (id: string, completed: boolean) => void;
   onEdit: (todo: Todo) => void;
   onDelete: (id: string) => void;
@@ -39,7 +40,7 @@ const statusLabels = {
   archived: 'Архив',
 } as const;
 
-export default function TodoItem({ todo, categories, onToggle, onEdit, onDelete }: TodoItemProps) {
+export default function TodoItem({ todo, projects, onToggle, onEdit, onDelete }: TodoItemProps) {
   const isCompleted = todo.status === 'completed';
   const isOverdue = todo.due_date && dayjs(todo.due_date).isBefore(dayjs(), 'day') && !isCompleted;
 
@@ -47,7 +48,7 @@ export default function TodoItem({ todo, categories, onToggle, onEdit, onDelete 
   const totalSubtasks = todo.subtasks.length;
   const progress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
-  const category = categories.find(c => c.id === todo.project_id);
+  const project = projects.find(p => p.id === todo.project_id);
 
   return (
     <Card shadow="xs" padding="md" withBorder style={{ width: '100%' }}>
@@ -70,9 +71,14 @@ export default function TodoItem({ todo, categories, onToggle, onEdit, onDelete 
                 {todo.title}
               </Text>
 
-              {category && (
-                <Badge size="xs" color={category.color} variant="filled" leftSection={<IconTag size={12} />}>
-                  {category.name}
+              {project && (
+                <Badge
+                  size="xs"
+                  color={project.color}
+                  variant="filled"
+                  leftSection={<IconBriefcase size={12} />}
+                >
+                  {project.name}
                 </Badge>
               )}
 

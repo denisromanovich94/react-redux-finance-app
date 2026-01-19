@@ -1,39 +1,36 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Title, Button, Group, Stack, SegmentedControl, TextInput, Select } from '@mantine/core';
-import { IconPlus, IconSearch, IconTag } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconBriefcase } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import PageContainer from '../shared/ui/PageContainer';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import {
   loadTodos,
-  loadCategories,
   createTodoAsync,
   updateTodoAsync,
   deleteTodoAsync,
-  createCategoryAsync,
   setStatusFilter,
   setSearchFilter,
   setCategoryFilter,
 } from '../features/todos/todosSlice';
+import { fetchProjects } from '../features/timetracker/timeTrackerThunks';
 import TodoItem from '../features/todos/ui/TodoItem';
 import TodoModal from '../features/todos/ui/TodoModal';
-import CategoryModal from '../features/todos/ui/CategoryModal';
 import type { Todo, TodoStatus, CreateTodoInput } from '../features/todos/types';
 
 export default function TodosPage() {
   const dispatch = useAppDispatch();
   const todos = useAppSelector((s) => s.todos.items);
-  const categories = useAppSelector((s) => s.todos.categories);
+  const projects = useAppSelector((s) => s.timeTracker.projects);
   const filters = useAppSelector((s) => s.todos.filters);
   const loading = useAppSelector((s) => s.todos.loading);
 
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const [categoryModalOpened, { open: openCategoryModal, close: closeCategoryModal }] = useDisclosure(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   useEffect(() => {
     dispatch(loadTodos());
-    dispatch(loadCategories());
+    dispatch(fetchProjects());
     // Устанавливаем "Активные" по умолчанию при первой загрузке
     if (filters.status.length === 0) {
       dispatch(setStatusFilter(['todo', 'in_progress']));
@@ -41,9 +38,9 @@ export default function TodosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  const categoryOptions = useMemo(
-    () => categories.map((c) => ({ value: c.id, label: c.name })),
-    [categories]
+  const projectOptions = useMemo(
+    () => projects.map((p) => ({ value: p.id, label: p.name })),
+    [projects]
   );
 
   const filteredTodos = useMemo(() => {
@@ -102,26 +99,13 @@ export default function TodosPage() {
     closeModal();
   };
 
-  const handleCreateCategory = (data: { name: string; color: string; description?: string }) => {
-    dispatch(createCategoryAsync(data));
-  };
-
   return (
     <PageContainer maxWidth={1600}>
       <Group justify="space-between" mb="lg">
         <Title order={2}>Задачи</Title>
-        <Group>
-          <Button
-            variant="light"
-            leftSection={<IconTag size={16} />}
-            onClick={openCategoryModal}
-          >
-            Новая категория
-          </Button>
-          <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
-            Создать задачу
-          </Button>
-        </Group>
+        <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
+          Создать задачу
+        </Button>
       </Group>
 
       <Stack gap="md" mb="lg">
@@ -158,11 +142,11 @@ export default function TodosPage() {
           />
 
           <Select
-            placeholder="Все категории"
-            leftSection={<IconTag size={16} />}
+            placeholder="Все проекты"
+            leftSection={<IconBriefcase size={16} />}
             data={[
-              { value: '', label: 'Все категории' },
-              ...categoryOptions,
+              { value: '', label: 'Все проекты' },
+              ...projectOptions,
             ]}
             value={filters.project_id || ''}
             onChange={(value) => dispatch(setCategoryFilter(value || undefined))}
@@ -178,7 +162,7 @@ export default function TodosPage() {
           <TodoItem
             key={todo.id}
             todo={todo}
-            categories={categories}
+            projects={projects}
             onToggle={handleToggleTodo}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -197,13 +181,7 @@ export default function TodosPage() {
         onClose={handleModalClose}
         onSubmit={editingTodo ? handleUpdateTodo : handleCreateTodo}
         todo={editingTodo}
-        categories={categoryOptions}
-      />
-
-      <CategoryModal
-        opened={categoryModalOpened}
-        onClose={closeCategoryModal}
-        onSubmit={handleCreateCategory}
+        projects={projectOptions}
       />
     </PageContainer>
   );
