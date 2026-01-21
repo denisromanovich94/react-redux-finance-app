@@ -4,9 +4,9 @@ import { createHmac, createHash } from 'https://deno.land/std@0.168.0/node/crypt
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
 interface TelegramAuthData {
   id: number;
   first_name: string;
@@ -55,7 +55,7 @@ function isAuthDateValid(authDate: number): boolean {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -78,6 +78,9 @@ serve(async (req) => {
     const body: RequestBody = await req.json();
     const { mode, telegramData } = body;
 
+    console.log('Request mode:', mode);
+    console.log('Telegram data:', telegramData ? { id: telegramData.id, auth_date: telegramData.auth_date } : 'none');
+
     // Для unlink не нужны данные Telegram
     if (mode !== 'unlink') {
       if (!telegramData) {
@@ -85,7 +88,10 @@ serve(async (req) => {
       }
 
       // Проверяем подлинность данных
-      if (!verifyTelegramData(telegramData, botToken)) {
+      const isHashValid = verifyTelegramData(telegramData, botToken);
+      console.log('Hash verification:', isHashValid);
+
+      if (!isHashValid) {
         return new Response(
           JSON.stringify({ error: 'Неверная подпись Telegram' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -93,7 +99,11 @@ serve(async (req) => {
       }
 
       // Проверяем актуальность данных
-      if (!isAuthDateValid(telegramData.auth_date)) {
+      const isDateValid = isAuthDateValid(telegramData.auth_date);
+      const now = Math.floor(Date.now() / 1000);
+      console.log('Date check:', { auth_date: telegramData.auth_date, now, diff: now - telegramData.auth_date, isValid: isDateValid });
+
+      if (!isDateValid) {
         return new Response(
           JSON.stringify({ error: 'Данные устарели. Попробуйте снова.' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -181,12 +191,16 @@ serve(async (req) => {
 
     // === РЕЖИМ: ВХОД ===
     if (mode === 'login') {
+      console.log('Login mode - searching for telegram_id:', telegramData!.id);
+
       // Ищем пользователя по telegram_id
-      const { data: profile } = await supabaseAdmin
+      const { data: profile, error: profileError } = await supabaseAdmin
         .from('user_profiles')
         .select('user_id, email')
         .eq('telegram_id', telegramData!.id)
         .single();
+
+      console.log('Profile search result:', { profile, error: profileError?.message });
 
       if (profile) {
         // Пользователь найден - генерируем magic link и извлекаем токен

@@ -52,6 +52,8 @@ export async function linkTelegram(telegramData: TelegramAuthData): Promise<Tele
  * Войти через Telegram (или зарегистрироваться если аккаунта нет)
  */
 export async function loginWithTelegram(telegramData: TelegramAuthData): Promise<TelegramAuthResponse> {
+  console.log('loginWithTelegram called with:', { id: telegramData.id, auth_date: telegramData.auth_date });
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/hyper-task`, {
     method: 'POST',
     headers: {
@@ -64,9 +66,10 @@ export async function loginWithTelegram(telegramData: TelegramAuthData): Promise
   });
 
   const result = await response.json();
+  console.log('loginWithTelegram response:', { status: response.status, result });
 
   if (!response.ok) {
-    return { success: false, error: result.error || 'Ошибка входа через Telegram' };
+    return { success: false, error: `[${response.status}] ${result.error || 'Ошибка входа через Telegram'}` };
   }
 
   // Если получили сессию - устанавливаем её
