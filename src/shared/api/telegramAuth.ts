@@ -54,10 +54,13 @@ export async function linkTelegram(telegramData: TelegramAuthData): Promise<Tele
 export async function loginWithTelegram(telegramData: TelegramAuthData): Promise<TelegramAuthResponse> {
   console.log('loginWithTelegram called with:', { id: telegramData.id, auth_date: telegramData.auth_date });
 
+  const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/hyper-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ANON_KEY}`,
     },
     body: JSON.stringify({
       mode: 'login',
