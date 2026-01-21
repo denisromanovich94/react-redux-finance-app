@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { createHmac, createHash } from 'https://deno.land/std@0.168.0/node/crypto.ts';
 
 const corsHeaders = {
@@ -215,7 +215,7 @@ serve(async (req) => {
 
         // Создаём сессию напрямую используя admin API
         const { data: sessionData, error: sessionError } =
-          await supabaseAdmin.auth.admin.createSession(profile.user_id);
+          await supabaseAdmin.auth.admin.createSession({ user_id: profile.user_id });
 
         if (sessionError || !sessionData) {
           // Fallback: используем magic link
@@ -284,7 +284,7 @@ serve(async (req) => {
 
       // Создаём сессию для нового пользователя
       const { data: sessionData, error: sessionError } =
-        await supabaseAdmin.auth.admin.createSession(newUser.user.id);
+        await supabaseAdmin.auth.admin.createSession({ user_id: newUser.user.id });
 
       if (sessionError || !sessionData) {
         throw sessionError || new Error('Failed to create session');
