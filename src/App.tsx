@@ -1,7 +1,8 @@
-import { AppShell, Burger, Group, NavLink, ScrollArea, Title, Button } from '@mantine/core';
+import { AppShell, Burger, Group, NavLink, ScrollArea, Title, Button, Text, Badge, Box } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { notifications } from '@mantine/notifications';
 import Overview from './pages/Overview';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
@@ -11,7 +12,7 @@ import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconSun, IconMoon, IconHeart } from '@tabler/icons-react';
+import { IconSun, IconMoon, IconHeart, IconBrandTelegram, IconCheck } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import TodosPage from './pages/TodosPage';
@@ -19,17 +20,39 @@ import CRMPage from './pages/CRMPage';
 import Settings from './pages/Settings';
 import DonatePage from './pages/DonatePage';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
-import { useAppDispatch } from './hooks';
+import { useAppDispatch, useAppSelector } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
 import { fetchProfile } from './features/profile/profileSlice';
 import { useAuth } from './shared/auth/AuthContext';
+import { TelegramLoginButton } from './shared/auth/TelegramLoginButton';
+import { linkTelegram } from './shared/api/telegramAuth';
+import type { TelegramAuthData } from './features/profile/types';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user } = useAuth(); // Используем централизованный AuthContext
+  const { user } = useAuth();
+  const { profile } = useAppSelector((state) => state.profile);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
+  const handleTelegramLink = async (data: TelegramAuthData) => {
+    try {
+      setTelegramLoading(true);
+      const result = await linkTelegram(data);
+      if (result.success) {
+        notifications.show({ color: 'teal', message: 'Telegram привязан' });
+        if (user?.id) dispatch(fetchProfile(user.id));
+      } else {
+        notifications.show({ color: 'red', message: result.error || 'Ошибка привязки' });
+      }
+    } catch {
+      notifications.show({ color: 'red', message: 'Ошибка привязки Telegram' });
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
 
   function ThemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
@@ -175,6 +198,28 @@ export default function App() {
                 leftSection={<IconHeart size={16} />}
                 c="pink"
               />
+
+              {/* Telegram секция */}
+              <Box p="sm" mt="md" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+                {profile?.telegram_id ? (
+                  <Group gap="xs">
+                    <IconBrandTelegram size={18} color="#0088cc" />
+                    <Badge color="teal" variant="light" size="sm" leftSection={<IconCheck size={10} />}>
+                      TG привязан
+                    </Badge>
+                  </Group>
+                ) : (
+                  <Box>
+                    <Text size="xs" c="dimmed" mb="xs">Привязать Telegram:</Text>
+                    {telegramLoading ? (
+                      <Text size="xs">Загрузка...</Text>
+                    ) : (
+                      <TelegramLoginButton onAuth={handleTelegramLink} buttonSize="small" />
+                    )}
+                  </Box>
+                )}
+              </Box>
+
               <Group justify="flex-start" p="sm">
                 <Button variant="outline" color="red" size="xs" onClick={handleLogout}>
                   Выйти
