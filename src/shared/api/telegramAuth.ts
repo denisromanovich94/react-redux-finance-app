@@ -27,7 +27,7 @@ export async function linkTelegram(telegramData: TelegramAuthData): Promise<Tele
     return { success: false, error: 'Необходимо войти в аккаунт' };
   }
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/hyper-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ export async function linkTelegram(telegramData: TelegramAuthData): Promise<Tele
  * Войти через Telegram (или зарегистрироваться если аккаунта нет)
  */
 export async function loginWithTelegram(telegramData: TelegramAuthData): Promise<TelegramAuthResponse> {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/hyper-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export async function unlinkTelegram(): Promise<TelegramAuthResponse> {
     return { success: false, error: 'Необходимо войти в аккаунт' };
   }
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/hyper-task`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
