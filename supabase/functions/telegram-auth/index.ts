@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createHmac, createHash } from 'https://deno.land/std@0.168.0/node/crypto.ts';
 
 const corsHeaders = {
@@ -203,30 +203,26 @@ serve(async (req) => {
       console.log('Profile search result:', { profile, error: profileError?.message });
 
       if (profile) {
-        // Пользователь найден - генерируем magic link и извлекаем токен
+        // Пользователь найден - генерируем magic link и используем OTP для создания сессии
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: 'magiclink',
           email: profile.email,
         });
 
         if (linkError || !linkData) {
-          throw linkError || new Error('Failed to generate session');
+          throw linkError || new Error('Failed to generate link');
         }
 
-        // Создаём сессию напрямую используя admin API
-        const { data: sessionData, error: sessionError } =
-          await supabaseAdmin.auth.admin.createSession({ user_id: profile.user_id });
+        // Используем OTP из сгенерированной ссылки для верификации
+        const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+          email: profile.email,
+          token: linkData.properties.email_otp,
+          type: 'email',
+        });
 
-        if (sessionError || !sessionData) {
-          // Fallback: используем magic link
-          return new Response(
-            JSON.stringify({
-              success: true,
-              requiresMagicLink: true,
-              email: profile.email,
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        if (sessionError || !sessionData.session) {
+          console.error('verifyOtp error:', sessionError);
+          throw sessionError || new Error('Failed to create session');
         }
 
         return new Response(
@@ -269,7 +265,7 @@ serve(async (req) => {
       }
 
       // Создаём профиль
-      const { error: profileError } = await supabaseAdmin.from('user_profiles').insert({
+      const { error: newProfileError } = await supabaseAdmin.from('user_profiles').insert({
         user_id: newUser.user.id,
         email: generatedEmail,
         telegram_id: telegramData!.id,
@@ -278,24 +274,36 @@ serve(async (req) => {
         last_name: telegramData!.last_name || null,
       });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
+      if (newProfileError) {
+        console.error('Profile creation error:', newProfileError);
       }
 
-      // Создаём сессию для нового пользователя
-      const { data: sessionData, error: sessionError } =
-        await supabaseAdmin.auth.admin.createSession({ user_id: newUser.user.id });
+      // Создаём сессию для нового пользователя через verifyOtp
+      const { data: newLinkData, error: newLinkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: generatedEmail,
+      });
 
-      if (sessionError || !sessionData) {
-        throw sessionError || new Error('Failed to create session');
+      if (newLinkError || !newLinkData) {
+        throw newLinkError || new Error('Failed to generate link for new user');
+      }
+
+      const { data: newSessionData, error: newSessionError } = await supabaseAdmin.auth.verifyOtp({
+        email: generatedEmail,
+        token: newLinkData.properties.email_otp,
+        type: 'email',
+      });
+
+      if (newSessionError || !newSessionData.session) {
+        throw newSessionError || new Error('Failed to create session for new user');
       }
 
       return new Response(
         JSON.stringify({
           success: true,
           session: {
-            access_token: sessionData.session.access_token,
-            refresh_token: sessionData.session.refresh_token,
+            access_token: newSessionData.session.access_token,
+            refresh_token: newSessionData.session.refresh_token,
           },
           user: {
             id: newUser.user.id,
