@@ -55,6 +55,7 @@ export type UserProfile = {
   last_name: string | null;
   phone: string | null;
   telegram: string | null;
+  telegram_id: number | null;
   position: string | null;
   theme_color: ThemeColor; // DEPRECATED: сохраняем для обратной совместимости
   appearance_settings: AppearanceSettings | null;
@@ -67,7 +68,19 @@ export type UpdateProfileData = {
   last_name?: string;
   phone?: string;
   telegram?: string;
+  telegram_id?: number;
   position?: string;
   theme_color?: ThemeColor; // DEPRECATED
   appearance_settings?: AppearanceSettings;
 };
+
+// Данные от Telegram Login Widget
+export interface TelegramAuthData {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+}
