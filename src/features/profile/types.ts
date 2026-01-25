@@ -1,3 +1,9 @@
+// Роли пользователей
+export type UserRole = 'user' | 'admin';
+
+// Типы подписок
+export type SubscriptionType = 'free' | 'premium' | 'vip';
+
 // Расширяем список цветов
 export type ThemeColor =
   | 'blue'
@@ -59,6 +65,10 @@ export type UserProfile = {
   position: string | null;
   theme_color: ThemeColor; // DEPRECATED: сохраняем для обратной совместимости
   appearance_settings: AppearanceSettings | null;
+  // Роль и подписка
+  role: UserRole;
+  subscription_type: SubscriptionType;
+  subscription_expires_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -72,6 +82,10 @@ export type UpdateProfileData = {
   position?: string;
   theme_color?: ThemeColor; // DEPRECATED
   appearance_settings?: AppearanceSettings;
+  // Админские поля (только для админов)
+  role?: UserRole;
+  subscription_type?: SubscriptionType;
+  subscription_expires_at?: string | null;
 };
 
 // Данные от Telegram Login Widget

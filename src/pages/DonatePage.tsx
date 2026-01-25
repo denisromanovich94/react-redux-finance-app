@@ -16,7 +16,6 @@ import {
   IconHeart,
   IconBrandTether,
   IconDiamond,
-  IconShoppingBag,
 } from '@tabler/icons-react';
 import PageContainer from '../shared/ui/PageContainer';
 
@@ -29,12 +28,6 @@ type DonateOption = {
 };
 
 const donateOptions: DonateOption[] = [
-  {
-    label: 'Озон Банк',
-    value: '2204321098256118',
-    icon: <IconShoppingBag size={24} />,
-    color: 'blue',
-  },
   {
     label: 'USDT',
     value: 'TVdwjWsc5qLVZcJVzFieiSc3vAse23HyCK',

@@ -12,13 +12,33 @@ import { Auth } from './pages/Auth';
 import RequireAuth from './shared/auth/RequireAuth';
 import { signOut } from './shared/api/auth';
 import { ActionIcon, useMantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { IconSun, IconMoon, IconHeart, IconBrandTelegram, IconCheck } from '@tabler/icons-react';
+import {
+  IconSun,
+  IconMoon,
+  IconHeart,
+  IconBrandTelegram,
+  IconCheck,
+  IconMessage,
+  IconHome,
+  IconCreditCard,
+  IconChartBar,
+  IconUsers,
+  IconBriefcase,
+  IconClock,
+  IconCalendar,
+  IconChecklist,
+  IconSettings,
+  IconLogin,
+} from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
 import TodosPage from './pages/TodosPage';
 import CRMPage from './pages/CRMPage';
 import Settings from './pages/Settings';
 import DonatePage from './pages/DonatePage';
+import Admin from './pages/Admin';
+import Support from './pages/Support';
+import RequireAdmin from './shared/auth/RequireAdmin';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch, useAppSelector } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
@@ -122,6 +142,7 @@ export default function App() {
             to="/"
             active={location.pathname === '/'}
             onClick={toggle}
+            leftSection={<IconHome size={16} />}
           />
 
           <NavLink
@@ -130,6 +151,7 @@ export default function App() {
             to="/transactions"
             active={location.pathname.startsWith('/transactions')}
             onClick={toggle}
+            leftSection={<IconCreditCard size={16} />}
           />
           <NavLink
             label="Аналитика"
@@ -137,6 +159,7 @@ export default function App() {
             to="/analytics"
             active={location.pathname.startsWith('/analytics')}
             onClick={toggle}
+            leftSection={<IconChartBar size={16} />}
           />
           <NavLink
             label="Клиенты"
@@ -144,6 +167,7 @@ export default function App() {
             to="/clients"
             active={location.pathname.startsWith('/clients')}
             onClick={toggle}
+            leftSection={<IconUsers size={16} />}
           />
           <NavLink
             label="Проекты (beta)"
@@ -151,34 +175,39 @@ export default function App() {
             to="/projects"
             active={location.pathname.startsWith('/projects')}
             onClick={toggle}
+            leftSection={<IconBriefcase size={16} />}
           />
-<NavLink
+          <NavLink
             label="Тайм трекер"
             component={Link}
             to="/tracker"
             active={location.pathname.startsWith('/tracker')}
             onClick={toggle}
+            leftSection={<IconClock size={16} />}
           />
-<NavLink
-  label="Календарь"
-  component={Link}
-  to="/calendar"
-  active={location.pathname.startsWith('/calendar')}
-  onClick={toggle}
-/>
-<NavLink
-  label="Задачи (beta)"
-  component={Link}
-  to="/todos"
-  active={location.pathname.startsWith('/todos')}
-  onClick={toggle}
-/>
+          <NavLink
+            label="Календарь"
+            component={Link}
+            to="/calendar"
+            active={location.pathname.startsWith('/calendar')}
+            onClick={toggle}
+            leftSection={<IconCalendar size={16} />}
+          />
+          <NavLink
+            label="Задачи (beta)"
+            component={Link}
+            to="/todos"
+            active={location.pathname.startsWith('/todos')}
+            onClick={toggle}
+            leftSection={<IconChecklist size={16} />}
+          />
           {!user ? (
             <NavLink
               label="Войти"
               component={Link}
               to="/auth"
               active={location.pathname.startsWith('/auth')}
+              leftSection={<IconLogin size={16} />}
             />
           ) : (
             <>
@@ -188,6 +217,15 @@ export default function App() {
                 to="/settings"
                 active={location.pathname.startsWith('/settings')}
                 onClick={toggle}
+                leftSection={<IconSettings size={16} />}
+              />
+              <NavLink
+                label="Поддержка"
+                component={Link}
+                to="/support"
+                active={location.pathname.startsWith('/support')}
+                onClick={toggle}
+                leftSection={<IconMessage size={16} />}
               />
               <NavLink
                 label="Поддержать"
@@ -200,7 +238,7 @@ export default function App() {
               />
 
               {/* Telegram секция */}
-              <Box p="sm" mt="md" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+              <Box p="sm" mt="md" style={{ borderTop: '1px solid var(--mantine-color-default-border)', minHeight: 60 }}>
                 {profile?.telegram_id ? (
                   <Group gap="xs">
                     <IconBrandTelegram size={18} color="#0088cc" />
@@ -247,6 +285,8 @@ export default function App() {
 <Route path="/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
 <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
 <Route path="/donate" element={<RequireAuth><DonatePage /></RequireAuth>} />
+<Route path="/support" element={<RequireAuth><Support /></RequireAuth>} />
+<Route path="/admin-denis" element={<RequireAdmin><Admin /></RequireAdmin>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

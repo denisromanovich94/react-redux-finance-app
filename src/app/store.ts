@@ -8,6 +8,8 @@ import currencyReducer from '../features/currency/currencySlice';
 import todosReducer from '../features/todos/todosSlice';
 import crmReducer from '../features/crm/crmSlice';
 import profileReducer from '../features/profile/profileSlice';
+import adminReducer from '../features/admin/adminSlice';
+import ticketsReducer from '../features/tickets/ticketsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +22,8 @@ export const store = configureStore({
     todos: todosReducer,
     crm: crmReducer,
     profile: profileReducer,
+    admin: adminReducer,
+    tickets: ticketsReducer,
   },
 });
 
