@@ -214,16 +214,16 @@ export default function Clients() {
           Нет клиентов. Добавьте первого клиента!
         </Text>
       ) : (
-        <Grid>
+        <Grid gutter="md">
           {clients.map((client) => {
             const stats = getClientStats(client);
             return (
-              <Grid.Col key={client.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
+              <Grid.Col key={client.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }} style={{ overflow: 'hidden' }}>
+                <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', overflow: 'hidden' }}>
+                  <Stack gap="sm" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     {/* Header: Name and Actions */}
-                    <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0 }}>
-                      <Text fw={600} size="md" lineClamp={2} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
+                    <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <Text fw={600} size="md" lineClamp={2} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', overflow: 'hidden' }}>
                         {client.name}
                       </Text>
                       <Group gap={4} wrap="nowrap">
