@@ -214,19 +214,19 @@ export default function Clients() {
           Нет клиентов. Добавьте первого клиента!
         </Text>
       ) : (
-        <Grid gutter="md">
+        <Grid gutter={16}>
           {clients.map((client) => {
             const stats = getClientStats(client);
             return (
               <Grid.Col key={client.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }} style={{ overflow: 'hidden' }}>
-                <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', overflow: 'hidden' }}>
-                  <Stack gap="sm" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <Card p={16} withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%', overflow: 'hidden' }}>
+                  <Stack gap={12} style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     {/* Header: Name and Actions */}
-                    <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <Text fw={600} size="md" lineClamp={2} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', overflow: 'hidden' }}>
+                    <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0, overflow: 'hidden', gap: 8 }}>
+                      <Text fw={600} lineClamp={2} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word', overflow: 'hidden', fontSize: '1rem' }}>
                         {client.name}
                       </Text>
-                      <Group gap={4} wrap="nowrap">
+                      <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
                         <ActionIcon
                           variant="subtle"
                           color="blue"
@@ -250,23 +250,23 @@ export default function Clients() {
                     {client.income_category_id && stats.totalIncome > 0 && (
                       <>
                         <Divider />
-                        <Stack gap="xs" style={{ minWidth: 0 }}>
-                          <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
-                            <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Доход</Text>
+                        <Stack gap={8} style={{ minWidth: 0 }}>
+                          <Group gap={8} justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                            <Text size="xs" c="dimmed" style={{ flexShrink: 0, fontSize: '0.75rem' }}>Доход</Text>
                             <Badge color="teal" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {formatRub(stats.totalIncome)}
                             </Badge>
                           </Group>
                           {stats.totalHours > 0 && (
                             <>
-                              <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
-                                <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Часов</Text>
+                              <Group gap={8} justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                                <Text size="xs" c="dimmed" style={{ flexShrink: 0, fontSize: '0.75rem' }}>Часов</Text>
                                 <Badge color="gray" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0 }}>
                                   {stats.totalHours.toFixed(1)} ч
                                 </Badge>
                               </Group>
-                              <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
-                                <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Цена/час</Text>
+                              <Group gap={8} justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                                <Text size="xs" c="dimmed" style={{ flexShrink: 0, fontSize: '0.75rem' }}>Цена/час</Text>
                                 <Badge color="blue" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {formatRub(stats.hourlyRate)}
                                 </Badge>
