@@ -219,11 +219,11 @@ export default function Clients() {
             const stats = getClientStats(client);
             return (
               <Grid.Col key={client.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
-                  <Stack gap="sm" style={{ flex: 1 }}>
+                <Card p="md" withBorder radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <Stack gap="sm" style={{ flex: 1, minWidth: 0 }}>
                     {/* Header: Name and Actions */}
-                    <Group justify="space-between" align="flex-start" wrap="nowrap">
-                      <Text fw={600} size="md" lineClamp={2} style={{ flex: 1 }}>
+                    <Group justify="space-between" align="flex-start" wrap="nowrap" style={{ minWidth: 0 }}>
+                      <Text fw={600} size="md" lineClamp={2} style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>
                         {client.name}
                       </Text>
                       <Group gap={4} wrap="nowrap">
@@ -250,24 +250,24 @@ export default function Clients() {
                     {client.income_category_id && stats.totalIncome > 0 && (
                       <>
                         <Divider />
-                        <Stack gap="xs">
-                          <Group gap="xs" justify="space-between">
-                            <Text size="xs" c="dimmed">Доход</Text>
-                            <Badge color="teal" variant="light" size="sm">
+                        <Stack gap="xs" style={{ minWidth: 0 }}>
+                          <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                            <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Доход</Text>
+                            <Badge color="teal" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {formatRub(stats.totalIncome)}
                             </Badge>
                           </Group>
                           {stats.totalHours > 0 && (
                             <>
-                              <Group gap="xs" justify="space-between">
-                                <Text size="xs" c="dimmed">Часов</Text>
-                                <Badge color="gray" variant="light" size="sm">
+                              <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                                <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Часов</Text>
+                                <Badge color="gray" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0 }}>
                                   {stats.totalHours.toFixed(1)} ч
                                 </Badge>
                               </Group>
-                              <Group gap="xs" justify="space-between">
-                                <Text size="xs" c="dimmed">Цена/час</Text>
-                                <Badge color="blue" variant="light" size="sm">
+                              <Group gap="xs" justify="space-between" wrap="nowrap" style={{ minWidth: 0 }}>
+                                <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>Цена/час</Text>
+                                <Badge color="blue" variant="light" size="sm" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {formatRub(stats.hourlyRate)}
                                 </Badge>
                               </Group>
@@ -281,7 +281,7 @@ export default function Clients() {
                     {(client.telegram || client.whatsapp || client.phone || client.email) && (
                       <>
                         <Divider />
-                        <Group gap={6}>
+                        <Group gap={6} wrap="wrap">
                           {client.telegram && (
                             <Tooltip label="Telegram">
                               <ActionIcon
