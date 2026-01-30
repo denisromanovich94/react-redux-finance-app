@@ -4,10 +4,10 @@ import type { RootState, AppDispatch } from '../app/store';
 import { fetchSessions, fetchProjects } from '../features/timetracker/timeTrackerThunks';
 import { loadClients } from '../features/clients/clientsSlice';
 import { Calendar } from '@mantine/dates';
-import { Modal, Text, Title, Stack, Badge, Divider, Card, Timeline, Group } from '@mantine/core';
+import { Modal, Text, Title, Stack, Badge, Divider, Card, Timeline, Group, Box } from '@mantine/core';
 import { IconClock, IconActivity, IconBriefcase, IconUser } from '@tabler/icons-react';
-import { useMediaQuery } from '@mantine/hooks';
-import dayjs from 'dayjs';
+import { useMediaQuery, useViewportSize } from '@mantine/hooks';
+import dayjs from '../shared/dayjs';
 
 export default function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -15,9 +15,19 @@ export default function CalendarPage() {
   const projects = useSelector((state: RootState) => state.timeTracker.projects);
   const clients = useSelector((state: RootState) => state.clients.items);
   const isSmall = useMediaQuery('(max-width: 48em)');
+  const { height: viewportHeight, width: viewportWidth } = useViewportSize();
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Рассчитываем размер квадратного календаря
+  // На десктопе: высота экрана минус отступы (заголовок ~80px, padding ~32px)
+  // На мобилке: ширина экрана минус padding
+  const headerOffset = isSmall ? 100 : 120;
+  const availableHeight = viewportHeight - headerOffset;
+  const availableWidth = isSmall ? viewportWidth - 32 : viewportWidth - 64;
+  const calendarSize = Math.min(availableHeight, availableWidth, 700); // max 700px
+  const cellSize = Math.floor((calendarSize - 40) / 7); // 7 колонок, 40px на padding
 
   useEffect(() => {
     dispatch(fetchSessions());
@@ -32,7 +42,7 @@ export default function CalendarPage() {
     : [];
 
   return (
-    <Stack gap="lg">
+    <Stack gap="md" style={{ height: '100%' }}>
       <div>
         <Title order={isSmall ? 3 : 2}>Календарь работы</Title>
         <Text c="dimmed" size="sm" mt={4}>
@@ -40,99 +50,147 @@ export default function CalendarPage() {
         </Text>
       </div>
 
-      <Card shadow="sm" padding={isSmall ? 'sm' : 'lg'} radius="md" withBorder>
-        <Calendar
-          size={isSmall ? 'md' : 'xl'}
-          styles={{
-            month: { fontSize: isSmall ? '1rem' : '1.5rem' },
-            weekday: { fontSize: isSmall ? '0.8rem' : '1.2rem', fontWeight: 600 },
-            day: {
-              width: isSmall ? 40 : 64,
-              height: isSmall ? 40 : 64,
-              margin: isSmall ? 1 : 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              borderRadius: 8,
-              position: 'relative',
-              fontSize: isSmall ? '0.85rem' : '1rem',
-            },
+      {/* Контейнер для центрирования календаря */}
+      <Box
+        style={{
+          display: 'flex',
+          justifyContent: isSmall ? 'center' : 'flex-start',
+          alignItems: 'flex-start',
+          flex: 1,
+        }}
+      >
+        <Card
+          shadow="sm"
+          padding={isSmall ? 'xs' : 'md'}
+          radius="md"
+          withBorder
+          style={{
+            width: calendarSize,
+            height: calendarSize,
+            aspectRatio: '1 / 1',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
           }}
-          renderDay={(dayStr: string) => {
-            const hasSession = sessionDates.includes(dayStr);
-            const date = new Date(dayStr);
-            const daySessionCount = sessions.filter(
-              (s) => dayjs(s.start_time).format('YYYY-MM-DD') === dayStr
-            ).length;
+        >
+          <Calendar
+            locale="ru"
+            size={isSmall ? 'md' : 'xl'}
+            styles={{
+              month: {
+                width: '100%',
+              },
+              monthCell: {
+                textAlign: 'center',
+              },
+              weekday: {
+                fontSize: isSmall ? '0.75rem' : '0.9rem',
+                fontWeight: 600,
+                padding: `${Math.floor(cellSize * 0.1)}px 0`,
+              },
+              day: {
+                width: cellSize,
+                height: cellSize,
+                margin: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                borderRadius: 8,
+                position: 'relative',
+                fontSize: isSmall ? '0.8rem' : '1rem',
+              },
+              calendarHeader: {
+                maxWidth: '100%',
+                marginBottom: isSmall ? 8 : 16,
+              },
+              calendarHeaderLevel: {
+                fontSize: isSmall ? '1rem' : '1.25rem',
+                fontWeight: 600,
+              },
+            }}
+            renderDay={(dayStr: string) => {
+              const hasSession = sessionDates.includes(dayStr);
+              const date = new Date(dayStr);
+              const daySessionCount = sessions.filter(
+                (s) => dayjs(s.start_time).format('YYYY-MM-DD') === dayStr
+              ).length;
 
-            return (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  backgroundColor: hasSession ? 'rgba(0,128,128,0.2)' : 'transparent',
-                  position: 'relative',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => {
-                  setSelectedDate(dayStr);
-                  setModalOpen(true);
-                }}
-                onMouseEnter={(e) => {
-                  if (hasSession) {
-                    e.currentTarget.style.backgroundColor = 'rgba(0,128,128,0.35)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (hasSession) {
-                    e.currentTarget.style.backgroundColor = 'rgba(0,128,128,0.2)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }
-                }}
-              >
-                {date.getDate()}
-                {hasSession && (
-                  <>
-                    <span
-                      style={{
-                        position: 'absolute',
-                        bottom: isSmall ? 2 : 4,
-                        width: isSmall ? 6 : 8,
-                        height: isSmall ? 6 : 8,
-                        borderRadius: '50%',
-                        backgroundColor: 'teal',
-                      }}
-                    />
-                    {daySessionCount > 1 && (
-                      <Badge
-                        size="xs"
-                        variant="filled"
-                        color="teal"
+              const dotSize = Math.max(6, Math.floor(cellSize * 0.12));
+              const badgeFontSize = isSmall ? '0.5rem' : '0.65rem';
+
+              return (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    borderRadius: 8,
+                    backgroundColor: hasSession ? 'rgba(0,128,128,0.2)' : 'transparent',
+                    position: 'relative',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onClick={() => {
+                    setSelectedDate(dayStr);
+                    setModalOpen(true);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (hasSession) {
+                      e.currentTarget.style.backgroundColor = 'rgba(0,128,128,0.35)';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (hasSession) {
+                      e.currentTarget.style.backgroundColor = 'rgba(0,128,128,0.2)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }
+                  }}
+                >
+                  {date.getDate()}
+                  {hasSession && (
+                    <>
+                      <span
                         style={{
                           position: 'absolute',
-                          top: isSmall ? 0 : 2,
-                          right: isSmall ? 0 : 2,
-                          fontSize: isSmall ? '0.6rem' : '0.7rem',
-                          padding: isSmall ? '2px 4px' : undefined,
+                          bottom: Math.floor(cellSize * 0.08),
+                          width: dotSize,
+                          height: dotSize,
+                          borderRadius: '50%',
+                          backgroundColor: 'teal',
                         }}
-                      >
-                        {daySessionCount}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          }}
-        />
-      </Card>
+                      />
+                      {daySessionCount > 1 && (
+                        <Badge
+                          size="xs"
+                          variant="filled"
+                          color="teal"
+                          style={{
+                            position: 'absolute',
+                            top: 1,
+                            right: 1,
+                            fontSize: badgeFontSize,
+                            padding: '1px 3px',
+                            minWidth: 'auto',
+                            height: 'auto',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {daySessionCount}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            }}
+          />
+        </Card>
+      </Box>
 
       <Modal
         opened={modalOpen}

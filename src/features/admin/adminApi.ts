@@ -104,20 +104,41 @@ export const adminApi = {
   // ==================== ТИКЕТЫ ====================
 
   async fetchTickets(): Promise<Ticket[]> {
-    const { data, error } = await supabase
+    // Сначала получаем тикеты без JOIN (чтобы избежать проблем с FK/RLS)
+    const { data: tickets, error: ticketsError } = await supabase
       .from('tickets')
-      .select(`
-        *,
-        user_profiles!tickets_user_id_fkey (email, telegram)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (ticketsError) throw ticketsError;
 
-    return (data || []).map((t) => ({
+    if (!tickets || tickets.length === 0) {
+      return [];
+    }
+
+    // Получаем user_ids для подгрузки профилей
+    const userIds = [...new Set(tickets.map(t => t.user_id).filter(Boolean))];
+
+    let profilesMap: Record<string, { email?: string; telegram?: string }> = {};
+
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('user_id, email, telegram')
+        .in('user_id', userIds);
+
+      if (profiles) {
+        profilesMap = profiles.reduce((acc, p) => {
+          acc[p.user_id] = { email: p.email, telegram: p.telegram };
+          return acc;
+        }, {} as Record<string, { email?: string; telegram?: string }>);
+      }
+    }
+
+    return tickets.map((t) => ({
       ...t,
-      user_email: t.user_profiles?.email,
-      user_telegram: t.user_profiles?.telegram,
+      user_email: profilesMap[t.user_id]?.email,
+      user_telegram: profilesMap[t.user_id]?.telegram,
     }));
   },
 
