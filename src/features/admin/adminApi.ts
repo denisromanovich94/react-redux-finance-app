@@ -122,7 +122,7 @@ export const adminApi = {
     let profilesMap: Record<string, { email?: string; telegram?: string }> = {};
 
     if (userIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles } = await supabase
         .from('user_profiles')
         .select('user_id, email, telegram')
         .in('user_id', userIds);
