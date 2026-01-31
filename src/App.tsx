@@ -29,6 +29,7 @@ import {
   IconChecklist,
   IconSettings,
   IconLogin,
+  IconRepeat,
 } from '@tabler/icons-react';
 import Tracker from './pages/Tracker';
 import CalendarPage from './pages/CalendarPage';
@@ -38,6 +39,7 @@ import Settings from './pages/Settings';
 import DonatePage from './pages/DonatePage';
 import Admin from './pages/Admin';
 import Support from './pages/Support';
+import RecurringExpensesPage from './pages/RecurringExpensesPage';
 import RequireAdmin from './shared/auth/RequireAdmin';
 import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch, useAppSelector } from './hooks';
@@ -48,6 +50,7 @@ import { useAuth } from './shared/auth/AuthContext';
 import { TelegramLoginButton } from './shared/auth/TelegramLoginButton';
 import { linkTelegram } from './shared/api/telegramAuth';
 import type { TelegramAuthData } from './features/profile/types';
+import { useRecurringExpensesProcessor } from './features/recurringExpenses/useRecurringExpensesProcessor';
 
 export default function App() {
   const [opened, { toggle }] = useDisclosure();
@@ -58,6 +61,9 @@ export default function App() {
   const { profile } = useAppSelector((state) => state.profile);
   const { unreadCount } = useAppSelector((state) => state.tickets);
   const [telegramLoading, setTelegramLoading] = useState(false);
+
+  // Автоматическая обработка регулярных расходов
+  useRecurringExpensesProcessor();
 
   const handleTelegramLink = async (data: TelegramAuthData) => {
     try {
@@ -166,6 +172,14 @@ export default function App() {
             active={location.pathname.startsWith('/transactions')}
             onClick={toggle}
             leftSection={<IconCreditCard size={16} />}
+          />
+          <NavLink
+            label="Расходы"
+            component={Link}
+            to="/recurring-expenses"
+            active={location.pathname.startsWith('/recurring-expenses')}
+            onClick={toggle}
+            leftSection={<IconRepeat size={16} />}
           />
           <NavLink
             label="Аналитика"
@@ -300,6 +314,7 @@ export default function App() {
           <Route path="/" element={<RequireAuth><Overview /></RequireAuth>} />
           <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
           <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+          <Route path="/recurring-expenses" element={<RequireAuth><RecurringExpensesPage /></RequireAuth>} />
           <Route path="/clients" element={<RequireAuth><Clients /></RequireAuth>} />
           <Route path="/projects" element={<RequireAuth><Projects /></RequireAuth>} />
 <Route path="/todos" element={<RequireAuth><TodosPage /></RequireAuth>} />

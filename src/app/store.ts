@@ -10,6 +10,7 @@ import crmReducer from '../features/crm/crmSlice';
 import profileReducer from '../features/profile/profileSlice';
 import adminReducer from '../features/admin/adminSlice';
 import ticketsReducer from '../features/tickets/ticketsSlice';
+import recurringExpensesReducer from '../features/recurringExpenses/recurringExpensesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     profile: profileReducer,
     admin: adminReducer,
     tickets: ticketsReducer,
+    recurringExpenses: recurringExpensesReducer,
   },
 });
 
