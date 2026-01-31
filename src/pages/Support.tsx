@@ -31,7 +31,9 @@ import {
   loadMessages,
   sendMessage,
   selectTicket,
+  clearUnreadCount,
 } from '../features/tickets/ticketsSlice';
+import { ticketsApi } from '../features/tickets/ticketsApi';
 import type { TicketStatus, TicketPriority } from '../features/admin/types';
 
 dayjs.extend(relativeTime);
@@ -67,6 +69,9 @@ export default function Support() {
 
   useEffect(() => {
     dispatch(loadMyTickets());
+    // Сохраняем время посещения в localStorage и сбрасываем счётчик
+    ticketsApi.markSupportAsRead();
+    dispatch(clearUnreadCount());
   }, [dispatch]);
 
   useEffect(() => {
@@ -109,6 +114,8 @@ export default function Support() {
     await dispatch(sendMessage({ ticketId: selectedTicketId, content: message.trim() }));
     setMessage('');
     setSending(false);
+    // Обновляем время последнего посещения (ответ = прочитано)
+    ticketsApi.markSupportAsRead();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

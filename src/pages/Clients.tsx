@@ -62,7 +62,7 @@ export default function Clients() {
 
   const incomeCategories = categories.filter(cat => cat.type === 'income');
 
-  // Функция подсчета статистики по клиенту
+  // Функция подсчета статистики по клиенту (по категории)
   const getClientStats = useMemo(() => {
     return (client: Client) => {
       if (!client.income_category_id) {
@@ -75,12 +75,12 @@ export default function Clients() {
         return { totalIncome: 0, totalHours: 0, hourlyRate: 0 };
       }
 
-      // Считаем общий доход по категории (транзакции с положительной суммой по категории)
+      // Считаем общий доход по категории (транзакции с положительной суммой)
       const totalIncome = transactions
         .filter(tx => tx.category === category.name && tx.amount > 0)
         .reduce((sum, tx) => sum + tx.amount, 0);
 
-      // Считаем общие часы из транзакций, где есть поле hours
+      // Считаем общие часы из транзакций категории
       const totalHours = transactions
         .filter(tx => tx.category === category.name && tx.hours)
         .reduce((sum, tx) => sum + (tx.hours || 0), 0);
@@ -247,7 +247,7 @@ export default function Clients() {
                     </Group>
 
                     {/* Stats */}
-                    {client.income_category_id && stats.totalIncome > 0 && (
+                    {stats.totalIncome > 0 && (
                       <>
                         <Divider />
                         <Stack gap={8} style={{ minWidth: 0 }}>

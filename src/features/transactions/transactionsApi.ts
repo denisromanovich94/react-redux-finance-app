@@ -9,6 +9,7 @@ export type Transaction = {
   amount: number;  // Всегда в рублях
   hours?: number;
   comment: string | null;
+  client_id?: string | null;
   created_at?: string;
 };
 

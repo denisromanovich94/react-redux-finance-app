@@ -9,6 +9,7 @@ interface TicketsState {
   messagesLoading: boolean;
   error: string | null;
   selectedTicketId: string | null;
+  unreadCount: number;
 }
 
 const initialState: TicketsState = {
@@ -18,9 +19,14 @@ const initialState: TicketsState = {
   messagesLoading: false,
   error: null,
   selectedTicketId: null,
+  unreadCount: 0,
 };
 
 // Async thunks
+export const loadUnreadCount = createAsyncThunk('tickets/loadUnreadCount', async () => {
+  return ticketsApi.fetchUnreadCount();
+});
+
 export const loadMyTickets = createAsyncThunk('tickets/loadMyTickets', async () => {
   return ticketsApi.fetchMyTickets();
 });
@@ -56,6 +62,9 @@ const ticketsSlice = createSlice({
     clearTicketSelection: (state) => {
       state.selectedTicketId = null;
       state.currentMessages = [];
+    },
+    clearUnreadCount: (state) => {
+      state.unreadCount = 0;
     },
   },
   extraReducers: (builder) => {
@@ -95,9 +104,14 @@ const ticketsSlice = createSlice({
       // Send message
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.currentMessages.push(action.payload);
+      })
+
+      // Unread count
+      .addCase(loadUnreadCount.fulfilled, (state, action) => {
+        state.unreadCount = action.payload;
       });
   },
 });
 
-export const { selectTicket, clearTicketSelection } = ticketsSlice.actions;
+export const { selectTicket, clearTicketSelection, clearUnreadCount } = ticketsSlice.actions;
 export default ticketsSlice.reducer;

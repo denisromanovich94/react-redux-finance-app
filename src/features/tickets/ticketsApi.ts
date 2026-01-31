@@ -1,7 +1,58 @@
 import { supabase } from '../../shared/api/supabase';
 import type { Ticket, TicketMessage, CreateTicketInput } from '../admin/types';
 
+const SUPPORT_LAST_READ_KEY = 'support_last_read_at';
+
 export const ticketsApi = {
+  // Сохранить время последнего посещения страницы поддержки
+  markSupportAsRead(): void {
+    localStorage.setItem(SUPPORT_LAST_READ_KEY, new Date().toISOString());
+  },
+
+  // Получить время последнего посещения
+  getLastReadAt(): string | null {
+    return localStorage.getItem(SUPPORT_LAST_READ_KEY);
+  },
+
+  // Проверить количество непрочитанных ответов от поддержки
+  async fetchUnreadCount(): Promise<number> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 0;
+
+    const lastReadAt = this.getLastReadAt();
+
+    // Получаем все открытые/в работе тикеты пользователя
+    const { data: tickets, error: ticketsError } = await supabase
+      .from('tickets')
+      .select('id, updated_at')
+      .eq('user_id', user.id)
+      .in('status', ['open', 'in_progress', 'resolved']);
+
+    if (ticketsError || !tickets || tickets.length === 0) return 0;
+
+    // Получаем сообщения от админа
+    const ticketIds = tickets.map(t => t.id);
+    let query = supabase
+      .from('ticket_messages')
+      .select('ticket_id, is_admin, created_at')
+      .in('ticket_id', ticketIds)
+      .eq('is_admin', true);
+
+    // Если есть время последнего посещения, считаем только новые сообщения
+    if (lastReadAt) {
+      query = query.gt('created_at', lastReadAt);
+    }
+
+    const { data: adminMessages, error: messagesError } = await query;
+
+    if (messagesError || !adminMessages) return 0;
+
+    // Считаем уникальные тикеты с непрочитанными ответами админа
+    const ticketsWithUnread = new Set(adminMessages.map(m => m.ticket_id));
+
+    return ticketsWithUnread.size;
+  },
+
   // Получить тикеты текущего пользователя
   async fetchMyTickets(): Promise<Ticket[]> {
     const { data: { user } } = await supabase.auth.getUser();

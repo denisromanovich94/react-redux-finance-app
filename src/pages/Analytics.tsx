@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center, ActionIcon, Paper, Box, useMantineTheme } from '@mantine/core';
+import { Card, Title, Modal, Table, Group, Text, Grid, Button, useMantineColorScheme, Badge, Stack, Progress, Divider, RingProgress, Center, ActionIcon, Paper, Box, useMantineTheme, HoverCard, ScrollArea } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight, IconArrowUp, IconArrowDown } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import { PieChart } from '@mantine/charts';
@@ -19,6 +19,7 @@ import { useAnalyticsData } from '../features/analytics/useAnalyticsData';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { loadTransactions } from '../features/transactions/transactionsSlice';
 import { loadCategories } from '../features/categories/categoriesSlice';
+import { loadClients } from '../features/clients/clientsSlice';
 import { convertCurrency, formatCurrencyAmount } from '../features/currency/utils';
 import CurrencySwitcher from '../features/currency/ui/CurrencySwitcher';
 import dayjs from '../shared/dayjs';
@@ -41,6 +42,8 @@ export default function Analytics() {
   const loading = useAppSelector((s) => s.transactions.loading);
   const itemsCount = useAppSelector((s) => s.transactions.items.length);
   const categoriesCount = useAppSelector((s) => s.categories.items.length);
+  const clients = useAppSelector((s) => s.clients.items);
+  const categories = useAppSelector((s) => s.categories.items);
 
   // Валюта и курсы
   const displayCurrency = useAppSelector((s) => s.currency.displayCurrency);
@@ -53,6 +56,7 @@ export default function Analytics() {
     if (categoriesCount === 0) {
       dispatch(loadCategories());
     }
+    dispatch(loadClients());
   }, [dispatch, loading, itemsCount, categoriesCount]);
 
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
@@ -90,6 +94,7 @@ export default function Analytics() {
     type: null,
   });
 
+
 const filteredTx = useMemo(() => {
   if (!catModal.category) return [];
 
@@ -101,6 +106,7 @@ const filteredTx = useMemo(() => {
   };
   return transactions.filter((t) => t.category === catModal.category && inRangeFn(t.date));
 }, [transactions, catModal.category, monthStart, monthEnd]);
+
 
   const openCatModal = (category: string, type: 'income' | 'expense') =>
     setCatModal({ open: true, category, type });
@@ -138,6 +144,16 @@ const hourlyRateForCategory = useMemo(() => {
   return totalIncome / totalHours;
 }, [filteredTx]);
 
+// Клиенты, связанные с выбранной категорией в модалке
+const modalCategoryClients = useMemo(() => {
+  if (!catModal.category || catModal.type !== 'income') return [];
+
+  const category = categories.find(c => c.name === catModal.category);
+  if (!category) return [];
+
+  return clients.filter(c => c.income_category_id === category.id);
+}, [catModal.category, catModal.type, categories, clients]);
+
   // Конвертируем данные графика в выбранную валюту
   const trendWithBalance: TrendWithExtras[] = useMemo(() => {
     return yearTrendData.map(d => {
@@ -166,6 +182,49 @@ const hourlyRateForCategory = useMemo(() => {
       value: convertCurrency(d.value, 'RUB', displayCurrency, exchangeRates),
     }));
   }, [incomeData, displayCurrency, exchangeRates]);
+
+  // Доход по клиентам за выбранный месяц (по фактическому client_id в транзакциях)
+  const incomeByClient = useMemo(() => {
+    const inRangeFn = (dateStr: string) => {
+      const ts = dayjs(dateStr, 'DD.MM.YYYY').valueOf();
+      const fromTs = dayjs(monthStart).startOf('day').valueOf();
+      const toTs = dayjs(monthEnd).endOf('day').valueOf();
+      return ts >= fromTs && ts <= toTs;
+    };
+
+    // Группируем доход по client_id из транзакций
+    const clientIncomeMap = new Map<string, { amount: number; categoryName: string }>();
+
+    for (const tx of transactions) {
+      if (!tx.client_id || tx.amount <= 0 || !inRangeFn(tx.date)) continue;
+
+      const existing = clientIncomeMap.get(tx.client_id);
+      if (existing) {
+        existing.amount += tx.amount;
+      } else {
+        clientIncomeMap.set(tx.client_id, { amount: tx.amount, categoryName: tx.category });
+      }
+    }
+
+    const result: Array<{ clientId: string; clientName: string; categoryName: string; amount: number; color: string }> = [];
+
+    for (const [clientId, data] of clientIncomeMap) {
+      const client = clients.find(c => c.id === clientId);
+      if (!client) continue;
+
+      const category = categories.find(c => c.name === data.categoryName);
+
+      result.push({
+        clientId,
+        clientName: client.name,
+        categoryName: data.categoryName,
+        amount: convertCurrency(data.amount, 'RUB', displayCurrency, exchangeRates),
+        color: category?.color || '#20c997',
+      });
+    }
+
+    return result.sort((a, b) => b.amount - a.amount);
+  }, [clients, categories, transactions, monthStart, monthEnd, displayCurrency, exchangeRates]);
 
   // Сравнение категорий: текущий месяц vs предыдущий месяц
   const categoryComparison = useMemo(() => {
@@ -316,20 +375,87 @@ const hourlyRateForCategory = useMemo(() => {
                 {convertedIncomeData.length === 0 ? (
                   <Text c="dimmed" size="sm">Нет доходов за выбранный период</Text>
                 ) : (
-                  <PieChart
-                    data={convertedIncomeData}
-                    withLabels
-                    withTooltip
-                    size={340}
-                    labelsType="percent"
-                    strokeWidth={1}
-                    tooltipDataSource="segment"
-                    pieProps={{
-                      onClick: (data: { name?: string }) => {
-                        if (data?.name) openCatModal(data.name, 'income');
-                      },
-                    }}
-                  />
+                  <HoverCard width={280} shadow="md" position="right-start" openDelay={300}>
+                    <HoverCard.Target>
+                      <div style={{ cursor: 'pointer' }}>
+                        <PieChart
+                          data={convertedIncomeData}
+                          withLabels
+                          withTooltip
+                          size={340}
+                          labelsType="percent"
+                          strokeWidth={1}
+                          tooltipDataSource="segment"
+                          pieProps={{
+                            onClick: (data: { name?: string }) => {
+                              if (data?.name) openCatModal(data.name, 'income');
+                            },
+                          }}
+                        />
+                      </div>
+                    </HoverCard.Target>
+                    <HoverCard.Dropdown>
+                      <ScrollArea.Autosize mah={400}>
+                        <Stack gap="xs">
+                          <Text fw={600} size="sm">Доходы по категориям</Text>
+                          {convertedIncomeData.map((item) => {
+                            // Находим клиентов, привязанных к этой категории
+                            const categoryClients = incomeByClient.filter(c => c.categoryName === item.name);
+
+                            return (
+                              <Box key={item.name}>
+                                {/* Категория */}
+                                <Group justify="space-between" wrap="nowrap">
+                                  <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                                    <Box
+                                      style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: '50%',
+                                        backgroundColor: item.color,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <Text size="sm" fw={500} truncate style={{ flex: 1 }}>{item.name}</Text>
+                                  </Group>
+                                  <Text size="sm" fw={500} c="green" style={{ flexShrink: 0 }}>
+                                    {formatCurrencyAmount(item.value, displayCurrency)}
+                                  </Text>
+                                </Group>
+
+                                {/* Клиенты как подкатегории */}
+                                {categoryClients.length > 0 && (
+                                  <Stack gap={4} ml="lg" mt={4}>
+                                    {categoryClients.map((client) => (
+                                      <Group key={client.clientId} justify="space-between" wrap="nowrap">
+                                        <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
+                                          └ {client.clientName}
+                                        </Text>
+                                        <Text size="xs" c="teal" style={{ flexShrink: 0 }}>
+                                          {formatCurrencyAmount(client.amount, displayCurrency)}
+                                        </Text>
+                                      </Group>
+                                    ))}
+                                  </Stack>
+                                )}
+                              </Box>
+                            );
+                          })}
+
+                          <Divider my="xs" />
+                          <Group justify="space-between">
+                            <Text size="sm" fw={600}>Итого:</Text>
+                            <Text size="sm" fw={700} c="green">
+                              {formatCurrencyAmount(
+                                convertedIncomeData.reduce((sum, item) => sum + item.value, 0),
+                                displayCurrency
+                              )}
+                            </Text>
+                          </Group>
+                        </Stack>
+                      </ScrollArea.Autosize>
+                    </HoverCard.Dropdown>
+                  </HoverCard>
                 )}
               </div>
             )}
@@ -371,6 +497,7 @@ const hourlyRateForCategory = useMemo(() => {
                 )}
               </Stack>
             )}
+
           </Card>
         </Grid.Col>
 
@@ -386,20 +513,62 @@ const hourlyRateForCategory = useMemo(() => {
                 {convertedExpenseData.length === 0 ? (
                   <Text c="dimmed" size="sm">Нет расходов за выбранный период</Text>
                 ) : (
-                  <PieChart
-                    data={convertedExpenseData}
-                    withLabels
-                    withTooltip
-                    size={340}
-                    labelsType="percent"
-                    strokeWidth={1}
-                    tooltipDataSource="segment"
-                    pieProps={{
-                      onClick: (data: { name?: string }) => {
-                        if (data?.name) openCatModal(data.name, 'expense');
-                      },
-                    }}
-                  />
+                  <HoverCard width={280} shadow="md" position="left-start" openDelay={300}>
+                    <HoverCard.Target>
+                      <div style={{ cursor: 'pointer' }}>
+                        <PieChart
+                          data={convertedExpenseData}
+                          withLabels
+                          withTooltip
+                          size={340}
+                          labelsType="percent"
+                          strokeWidth={1}
+                          tooltipDataSource="segment"
+                          pieProps={{
+                            onClick: (data: { name?: string }) => {
+                              if (data?.name) openCatModal(data.name, 'expense');
+                            },
+                          }}
+                        />
+                      </div>
+                    </HoverCard.Target>
+                    <HoverCard.Dropdown>
+                      <Text fw={600} mb="sm">Все расходы</Text>
+                      <ScrollArea.Autosize mah={300}>
+                        <Stack gap="xs">
+                          {convertedExpenseData.map((item) => (
+                            <Group key={item.name} justify="space-between" wrap="nowrap">
+                              <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                                <Box
+                                  style={{
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    backgroundColor: item.color,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <Text size="sm" truncate style={{ flex: 1 }}>{item.name}</Text>
+                              </Group>
+                              <Text size="sm" fw={500} c="red" style={{ flexShrink: 0 }}>
+                                {formatCurrencyAmount(item.value, displayCurrency)}
+                              </Text>
+                            </Group>
+                          ))}
+                          <Divider my="xs" />
+                          <Group justify="space-between">
+                            <Text size="sm" fw={600}>Итого:</Text>
+                            <Text size="sm" fw={700} c="red">
+                              {formatCurrencyAmount(
+                                convertedExpenseData.reduce((sum, item) => sum + item.value, 0),
+                                displayCurrency
+                              )}
+                            </Text>
+                          </Group>
+                        </Stack>
+                      </ScrollArea.Autosize>
+                    </HoverCard.Dropdown>
+                  </HoverCard>
                 )}
               </div>
             )}
@@ -441,6 +610,7 @@ const hourlyRateForCategory = useMemo(() => {
                 )}
               </Stack>
             )}
+
           </Card>
         </Grid.Col>
 
@@ -788,9 +958,21 @@ const hourlyRateForCategory = useMemo(() => {
 ) : (
   <>
     {catModal.type === 'income' && (
-      <Text mb="sm" fw={500}>
-        Стоимость работы в час: {formatCurrencyAmount(hourlyRateForCategory, displayCurrency)}
-      </Text>
+      <>
+        <Text mb="xs" fw={500}>
+          Стоимость работы в час: {formatCurrencyAmount(hourlyRateForCategory, displayCurrency)}
+        </Text>
+        {modalCategoryClients.length > 0 && (
+          <Group gap="xs" mb="sm">
+            <Text size="sm" c="dimmed">Клиенты:</Text>
+            {modalCategoryClients.map(client => (
+              <Badge key={client.id} variant="light" color="teal" size="sm">
+                {client.name}
+              </Badge>
+            ))}
+          </Group>
+        )}
+      </>
     )}
 
     {/* Desktop view - таблица */}
@@ -799,31 +981,48 @@ const hourlyRateForCategory = useMemo(() => {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Дата</Table.Th>
+            {catModal.type === 'income' && modalCategoryClients.length > 0 && (
+              <Table.Th>Клиент</Table.Th>
+            )}
             <Table.Th ta="right">Сумма</Table.Th>
             <Table.Th>Комментарий</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {filteredTx.map((t) => (
-            <Table.Tr key={t.id}>
-              <Table.Td>{t.date}</Table.Td>
-              <Table.Td ta="right">
-                <Text c={t.amount < 0 ? 'red' : 'green'}>
-                  {formatCurrencyAmount(t.amount, displayCurrency)}
-                </Text>
-              </Table.Td>
-              <Table.Td
-                style={{
-                  maxWidth: 420,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {t.comment ?? '—'}
-              </Table.Td>
-            </Table.Tr>
-          ))}
+          {filteredTx.map((t) => {
+            const txClient = t.client_id ? clients.find(c => c.id === t.client_id) : null;
+            return (
+              <Table.Tr key={t.id}>
+                <Table.Td>{t.date}</Table.Td>
+                {catModal.type === 'income' && modalCategoryClients.length > 0 && (
+                  <Table.Td>
+                    {txClient ? (
+                      <Badge variant="light" color="teal" size="xs">
+                        {txClient.name}
+                      </Badge>
+                    ) : (
+                      <Text size="xs" c="dimmed">—</Text>
+                    )}
+                  </Table.Td>
+                )}
+                <Table.Td ta="right">
+                  <Text c={t.amount < 0 ? 'red' : 'green'}>
+                    {formatCurrencyAmount(t.amount, displayCurrency)}
+                  </Text>
+                </Table.Td>
+                <Table.Td
+                  style={{
+                    maxWidth: 420,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t.comment ?? '—'}
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
         </Table.Tbody>
       </Table>
     )}
@@ -831,25 +1030,33 @@ const hourlyRateForCategory = useMemo(() => {
     {/* Mobile view - карточки */}
     {isSmall && (
       <Stack gap="sm">
-        {filteredTx.map((t) => (
-          <Paper key={t.id} p="md" withBorder radius="md">
-            <Group justify="space-between" mb="xs">
-              <Text size="sm" c="dimmed">{t.date}</Text>
-              <Text
-                size="xl"
-                fw={700}
-                c={t.amount < 0 ? 'red' : 'green'}
-              >
-                {formatCurrencyAmount(t.amount, displayCurrency)}
-              </Text>
-            </Group>
-            {t.comment && (
-              <Text size="sm" c="dimmed" lineClamp={2}>
-                {t.comment}
-              </Text>
-            )}
-          </Paper>
-        ))}
+        {filteredTx.map((t) => {
+          const txClient = t.client_id ? clients.find(c => c.id === t.client_id) : null;
+          return (
+            <Paper key={t.id} p="md" withBorder radius="md">
+              <Group justify="space-between" mb="xs">
+                <Text size="sm" c="dimmed">{t.date}</Text>
+                <Text
+                  size="xl"
+                  fw={700}
+                  c={t.amount < 0 ? 'red' : 'green'}
+                >
+                  {formatCurrencyAmount(t.amount, displayCurrency)}
+                </Text>
+              </Group>
+              {catModal.type === 'income' && txClient && (
+                <Badge variant="light" color="teal" size="xs" mb="xs">
+                  {txClient.name}
+                </Badge>
+              )}
+              {t.comment && (
+                <Text size="sm" c="dimmed" lineClamp={2}>
+                  {t.comment}
+                </Text>
+              )}
+            </Paper>
+          );
+        })}
       </Stack>
     )}
   </>

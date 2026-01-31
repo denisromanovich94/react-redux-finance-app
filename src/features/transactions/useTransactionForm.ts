@@ -10,6 +10,7 @@ export type TxFormValues = {
   hours: number;
   comment: string;
   currency: CurrencyCode;
+  client_id: string | null;
 };
 
 export function toTxPayload(values: TxFormValues): Omit<Transaction, 'id' | 'user_id' | 'created_at'> {
@@ -22,6 +23,7 @@ export function toTxPayload(values: TxFormValues): Omit<Transaction, 'id' | 'use
     category: values.category,
     amount: Number(values.amount),  // Всегда в рублях (конвертация происходит в компоненте)
     comment: values.comment.trim() ? values.comment.trim() : null,
+    client_id: values.client_id || null,
   };
 
   if (values.hours && values.hours > 0) {
@@ -40,6 +42,7 @@ export function useTransactionForm() {
       hours: 0,
       comment: '',
       currency: 'RUB',
+      client_id: null,
     },
     validate: {
       date: (v) => (v ? null : 'Выберите дату'),
@@ -48,7 +51,7 @@ export function useTransactionForm() {
     },
   });
 
-  function setFromTransaction(tx: { date: string; category: string; amount: number; hours?: number; comment?: string | null }) {
+  function setFromTransaction(tx: { date: string; category: string; amount: number; hours?: number; comment?: string | null; client_id?: string | null }) {
     form.setValues({
       date: dayjs(tx.date, 'DD.MM.YYYY').toDate(),
       category: tx.category,
@@ -56,6 +59,7 @@ export function useTransactionForm() {
       hours: tx.hours ?? 0,
       comment: tx.comment ?? '',
       currency: 'RUB',  // По умолчанию рубли при редактировании
+      client_id: tx.client_id ?? null,
     });
   }
 

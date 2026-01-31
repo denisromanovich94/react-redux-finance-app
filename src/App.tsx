@@ -43,6 +43,7 @@ import FloatingTracker from './features/tracker/ui/FloatingTracker';
 import { useAppDispatch, useAppSelector } from './hooks';
 import { loadExchangeRates } from './features/currency/currencySlice';
 import { fetchProfile } from './features/profile/profileSlice';
+import { loadUnreadCount } from './features/tickets/ticketsSlice';
 import { useAuth } from './shared/auth/AuthContext';
 import { TelegramLoginButton } from './shared/auth/TelegramLoginButton';
 import { linkTelegram } from './shared/api/telegramAuth';
@@ -55,6 +56,7 @@ export default function App() {
   const dispatch = useAppDispatch();
   const { user } = useAuth();
   const { profile } = useAppSelector((state) => state.profile);
+  const { unreadCount } = useAppSelector((state) => state.tickets);
   const [telegramLoading, setTelegramLoading] = useState(false);
 
   const handleTelegramLink = async (data: TelegramAuthData) => {
@@ -108,6 +110,18 @@ export default function App() {
   useEffect(() => {
     if (user?.id) {
       dispatch(fetchProfile(user.id));
+    }
+  }, [user?.id, dispatch]);
+
+  // Загружаем количество непрочитанных ответов поддержки
+  useEffect(() => {
+    if (user?.id) {
+      dispatch(loadUnreadCount());
+      // Проверяем каждые 2 минуты
+      const interval = setInterval(() => {
+        dispatch(loadUnreadCount());
+      }, 2 * 60 * 1000);
+      return () => clearInterval(interval);
     }
   }, [user?.id, dispatch]);
 
@@ -220,7 +234,16 @@ export default function App() {
                 leftSection={<IconSettings size={16} />}
               />
               <NavLink
-                label="Поддержка"
+                label={
+                  <Group gap={6}>
+                    <span>Поддержка</span>
+                    {unreadCount > 0 && (
+                      <Badge size="xs" color="red" variant="filled" circle>
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Group>
+                }
                 component={Link}
                 to="/support"
                 active={location.pathname.startsWith('/support')}

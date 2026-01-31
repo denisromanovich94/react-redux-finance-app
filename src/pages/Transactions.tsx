@@ -1,5 +1,5 @@
 import {
-  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,Box,Paper,ColorInput,}
+  Card,Table,Title,Text,Button,Modal,NumberInput,Stack,Select,Tabs,ActionIcon,Grid, Textarea,Group,Tooltip,Alert,Loader,Center,SegmentedControl,TextInput as MantineTextInput,Radio,Box,Paper,ColorInput,MultiSelect,}
   from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -16,6 +16,7 @@ import {
   deleteTransactionAsync,
 } from '../features/transactions/transactionsSlice';
 import { loadCategories, addCategoryAsync, updateCategoryAsync, deleteCategoryAsync } from '../features/categories/categoriesSlice';
+import { loadClients, updateClient } from '../features/clients/clientsSlice';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
@@ -32,6 +33,7 @@ export default function Transactions() {
   const transactionsLoading = useAppSelector((s) => s.transactions.loading);
   const transactionsError = useAppSelector((s) => s.transactions.error);
   const categories = useAppSelector((s) => s.categories.items);
+  const clients = useAppSelector((s) => s.clients.items);
   const [opened, { open, close }] = useDisclosure(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { form, setFromTransaction } = useTransactionForm();
@@ -42,6 +44,7 @@ export default function Transactions() {
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
   const [newCatColor, setNewCatColor] = useState('#20c997');
+  const [newCatClientIds, setNewCatClientIds] = useState<string[]>([]);
   const [displayCount, setDisplayCount] = useState(15);
 
   const exchangeRates = useAppSelector((s) => s.currency.rates);
@@ -49,6 +52,7 @@ export default function Transactions() {
   useEffect(() => {
     dispatch(loadTransactions());
     dispatch(loadCategories());
+    dispatch(loadClients());
   }, [dispatch]);
   const usageCount = useAppSelector(selectCategoryUsageCount) as Record<string, number>;
   const [txType, setTxType] = useState<'income' | 'expense'>('expense');
@@ -126,13 +130,15 @@ const resetNewCategoryForm = () => {
   setNewCatName('');
   setNewCatType('expense');
   setNewCatColor('#20c997');
+  setNewCatClientIds([]);
   setCatEditingId(null);
 };
 
-const handleSaveCategory = () => {
+const handleSaveCategory = async () => {
   if (!canSaveCategory) return;
 
   if (catEditingId) {
+    // Обновляем категорию
     dispatch(
       updateCategoryAsync({
         id: catEditingId,
@@ -144,16 +150,50 @@ const handleSaveCategory = () => {
         },
       })
     );
+
+    // Обновляем income_category_id у клиентов (только для категорий дохода)
+    if (newCatType === 'income') {
+      // Текущие клиенты этой категории
+      const currentClientIds = clients
+        .filter(c => c.income_category_id === catEditingId)
+        .map(c => c.id);
+
+      // Клиенты, которых нужно добавить к категории
+      const clientsToAdd = newCatClientIds.filter(id => !currentClientIds.includes(id));
+      // Клиенты, которых нужно убрать из категории
+      const clientsToRemove = currentClientIds.filter(id => !newCatClientIds.includes(id));
+
+      // Добавляем income_category_id выбранным клиентам
+      for (const clientId of clientsToAdd) {
+        dispatch(updateClient({ id: clientId, data: { income_category_id: catEditingId } }));
+      }
+
+      // Убираем income_category_id у невыбранных клиентов
+      for (const clientId of clientsToRemove) {
+        dispatch(updateClient({ id: clientId, data: { income_category_id: undefined } }));
+      }
+    }
   } else {
-    dispatch(
+    // Создаем новую категорию
+    const result = await dispatch(
       addCategoryAsync({
         name: newCatName.trim(),
         type: newCatType,
         color: newCatColor,
         icon: null,
       })
-    );
+    ).unwrap();
+
+    // Обновляем income_category_id у выбранных клиентов (только для категорий дохода)
+    if (newCatType === 'income' && newCatClientIds.length > 0 && result?.id) {
+      for (const clientId of newCatClientIds) {
+        dispatch(updateClient({ id: clientId, data: { income_category_id: result.id } }));
+      }
+    }
   }
+
+  // Перезагружаем клиентов чтобы обновить UI
+  dispatch(loadClients());
 
   resetNewCategoryForm();
   setCatOpened(false);
@@ -166,6 +206,11 @@ const handleEditCategory = (id: string) => {
   setNewCatName(c.name);
   setNewCatType(c.type);
   setNewCatColor(c.color);
+  // Загружаем клиентов по income_category_id
+  const categoryClientIds = clients
+    .filter(client => client.income_category_id === id)
+    .map(client => client.id);
+  setNewCatClientIds(categoryClientIds);
   setCatTab(c.type);
   setCatOpened(true);
 };
@@ -181,7 +226,17 @@ const handleCategoryChange = (val: string | null) => {
 
   const cat = val ? catByName.get(val) : undefined;
   if (!cat) {
+    form.setFieldValue('client_id', null);
     return;
+  }
+
+  // Сбрасываем выбранного клиента если он не принадлежит новой категории
+  const currentClientId = form.values.client_id;
+  if (currentClientId) {
+    const currentClient = clients.find(c => c.id === currentClientId);
+    if (!currentClient || currentClient.income_category_id !== cat.id) {
+      form.setFieldValue('client_id', null);
+    }
   }
 
   const amt = Number(form.values.amount ?? 0);
@@ -345,6 +400,28 @@ const expenseCategories = useMemo(
       onChange={(val) => form.setFieldValue('currency', (val as CurrencyCode) || 'RUB')}
       mb="sm"
     />
+
+    {/* Выбор клиента для категорий дохода */}
+    {form.values.category && (() => {
+      const cat = catByName.get(form.values.category);
+      if (!cat || cat.type !== 'income') return null;
+
+      // Клиенты, привязанные к этой категории
+      const categoryClients = clients.filter(c => c.income_category_id === cat.id);
+      if (categoryClients.length === 0) return null;
+
+      return (
+        <Select
+          label="Клиент"
+          placeholder="Выберите клиента"
+          data={categoryClients.map(c => ({ value: c.id, label: c.name }))}
+          value={form.values.client_id}
+          onChange={(val) => form.setFieldValue('client_id', val)}
+          mb="sm"
+          clearable
+        />
+      );
+    })()}
 
     {form.values.category && catByName.get(form.values.category)?.type === 'income' && (
       <NumberInput
@@ -511,6 +588,18 @@ const expenseCategories = useMemo(
           placeholder="Выберите цвет"
         />
 
+        {newCatType === 'income' && (
+          <MultiSelect
+            label="Клиенты"
+            placeholder="Выберите клиентов для этой категории"
+            data={clients.map(c => ({ value: c.id, label: c.name }))}
+            value={newCatClientIds}
+            onChange={setNewCatClientIds}
+            searchable
+            clearable
+          />
+        )}
+
         <Group justify="flex-end" mt="sm">
           {catEditingId && (
             <Button variant="subtle" onClick={resetNewCategoryForm}>
@@ -596,6 +685,7 @@ const expenseCategories = useMemo(
                   <Table.Tr>
                     <Table.Th>Дата</Table.Th>
                     <Table.Th>Категория</Table.Th>
+                    <Table.Th>Клиент</Table.Th>
                     <Table.Th ta="right">Сумма</Table.Th>
                     <Table.Th>Комментарий</Table.Th>
                     <Table.Th ta="right">Действия</Table.Th>
@@ -617,6 +707,18 @@ const expenseCategories = useMemo(
                           />
                           <span>{r.category}</span>
                         </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        {(() => {
+                          const cat = catByName.get(r.category);
+                          if (!cat || cat.type !== 'income') return '—';
+                          // Показываем клиента из client_id транзакции
+                          if (r.client_id) {
+                            const txClient = clients.find(c => c.id === r.client_id);
+                            return txClient?.name || '—';
+                          }
+                          return '—';
+                        })()}
                       </Table.Td>
                       <Table.Td ta="right">
                         <Text c={r.amount < 0 ? 'red' : 'green'}>
@@ -665,6 +767,18 @@ const expenseCategories = useMemo(
                       </Group>
                       <Text size="sm" c="dimmed">{r.date}</Text>
                     </Group>
+
+                    {(() => {
+                      const cat = catByName.get(r.category);
+                      if (!cat || cat.type !== 'income' || !r.client_id) return null;
+                      const txClient = clients.find(c => c.id === r.client_id);
+                      if (!txClient) return null;
+                      return (
+                        <Text size="sm" c="teal" mb="xs">
+                          {txClient.name}
+                        </Text>
+                      );
+                    })()}
 
                     <Text
                       size="xl"

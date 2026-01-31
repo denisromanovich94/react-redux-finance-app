@@ -8,6 +8,7 @@ export type Category = {
   type: 'income' | 'expense';
   color: string;
   icon?: string | null;
+  client_ids?: string[];
   created_at?: string;
 };
 

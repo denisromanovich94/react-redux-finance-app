@@ -143,20 +143,41 @@ export const adminApi = {
   },
 
   async fetchTicketMessages(ticketId: string): Promise<TicketMessage[]> {
-    const { data, error } = await supabase
+    // Получаем сообщения без JOIN (чтобы избежать проблем с FK/RLS)
+    const { data: messages, error: messagesError } = await supabase
       .from('ticket_messages')
-      .select(`
-        *,
-        user_profiles!ticket_messages_sender_id_fkey (email)
-      `)
+      .select('*')
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (messagesError) throw messagesError;
 
-    return (data || []).map((m) => ({
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
+    // Получаем sender_ids для подгрузки email-ов
+    const senderIds = [...new Set(messages.map(m => m.sender_id).filter(Boolean))];
+
+    let emailsMap: Record<string, string> = {};
+
+    if (senderIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('user_profiles')
+        .select('user_id, email')
+        .in('user_id', senderIds);
+
+      if (profiles) {
+        emailsMap = profiles.reduce((acc, p) => {
+          acc[p.user_id] = p.email;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+    }
+
+    return messages.map((m) => ({
       ...m,
-      sender_email: m.user_profiles?.email,
+      sender_email: emailsMap[m.sender_id] || undefined,
     }));
   },
 
@@ -183,7 +204,11 @@ export const adminApi = {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', ticketId);
 
-    return data;
+    // Возвращаем сообщение с email отправителя
+    return {
+      ...data,
+      sender_email: user.email || undefined,
+    };
   },
 
   async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<void> {
