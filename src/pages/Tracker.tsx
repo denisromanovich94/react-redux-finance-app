@@ -28,7 +28,8 @@ import {
   selectProjects,
 } from '../features/timetracker/selectors';
 import { loadClients } from '../features/clients/clientsSlice';
-import { Button, Group, Stack, Title, Divider, Table, Textarea, Select, Modal, ActionIcon } from '@mantine/core';
+import { Button, Group, Stack, Title, Divider, Table, Textarea, Select, Modal, ActionIcon, Paper, Text } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPencil, IconTrash } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -55,6 +56,8 @@ export default function Tracker() {
   const [editingLogIndex, setEditingLogIndex] = useState<number | null>(null);
   const [editActivity, setEditActivity] = useState('');
   const [editActivityType, setEditActivityType] = useState<ActivityType>('работал');
+
+  const isSmall = useMediaQuery('(max-width: 48em)');
 
   const activityOptions = [
     { value: 'работал', label: 'Работал' },
@@ -334,45 +337,81 @@ export default function Tracker() {
             clearable
           />
 
-          <Table striped highlightOnHover withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th style={{ width: '80px' }}>С</Table.Th>
-                <Table.Th style={{ width: '80px' }}>До</Table.Th>
-                <Table.Th>Что делал</Table.Th>
-                <Table.Th style={{ width: '200px' }}>Тип</Table.Th>
-                <Table.Th style={{ width: '100px' }}>Действия</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filteredLogs.map((log, idx) => (
-                <Table.Tr key={idx}>
-                  <Table.Td>{dayjs(log.hour).format('HH:mm')}</Table.Td>
-                  <Table.Td>{log.endTime ? dayjs(log.endTime).format('HH:mm') : '-'}</Table.Td>
-                  <Table.Td
-                    style={{
-                      maxWidth: '400px',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {log.activity}
-                  </Table.Td>
-                  <Table.Td>{log.activityType}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(idx)}>
-                        <IconPencil size={16} />
-                      </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(idx)}>
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
+          {/* Desktop view - таблица */}
+          {!isSmall && (
+            <Table striped highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ width: '80px' }}>С</Table.Th>
+                  <Table.Th style={{ width: '80px' }}>До</Table.Th>
+                  <Table.Th>Что делал</Table.Th>
+                  <Table.Th style={{ width: '200px' }}>Тип</Table.Th>
+                  <Table.Th style={{ width: '100px' }}>Действия</Table.Th>
                 </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {filteredLogs.map((log, idx) => (
+                  <Table.Tr key={idx}>
+                    <Table.Td>{dayjs(log.hour).format('HH:mm')}</Table.Td>
+                    <Table.Td>{log.endTime ? dayjs(log.endTime).format('HH:mm') : '-'}</Table.Td>
+                    <Table.Td
+                      style={{
+                        maxWidth: '400px',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {log.activity}
+                    </Table.Td>
+                    <Table.Td>{log.activityType}</Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <ActionIcon variant="subtle" color="blue" onClick={() => handleEdit(idx)}>
+                          <IconPencil size={16} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(idx)}>
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          )}
+
+          {/* Mobile view - карточки */}
+          {isSmall && (
+            <Stack gap="sm">
+              {filteredLogs.map((log, idx) => (
+                <Paper key={idx} p="sm" withBorder radius="md">
+                  <Group justify="space-between" mb="xs">
+                    <Group gap="xs">
+                      <Text fw={500}>{dayjs(log.hour).format('HH:mm')}</Text>
+                      <Text c="dimmed">—</Text>
+                      <Text fw={500}>{log.endTime ? dayjs(log.endTime).format('HH:mm') : '-'}</Text>
+                    </Group>
+                    <Text size="sm" c="dimmed">{log.activityType}</Text>
+                  </Group>
+
+                  {log.activity && (
+                    <Text size="sm" c="dimmed" mb="sm" lineClamp={3}>
+                      {log.activity}
+                    </Text>
+                  )}
+
+                  <Group gap="xs" justify="flex-end">
+                    <ActionIcon variant="light" size="lg" onClick={() => handleEdit(idx)}>
+                      <IconPencil size={18} />
+                    </ActionIcon>
+                    <ActionIcon variant="light" color="red" size="lg" onClick={() => handleDelete(idx)}>
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Group>
+                </Paper>
               ))}
-            </Table.Tbody>
-          </Table>
+            </Stack>
+          )}
         </>
       )}
 
